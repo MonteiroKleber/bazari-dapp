@@ -1,0 +1,204 @@
+{
+
+"common": {
+    "cancel": "Cancelar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "yes": "Sim",
+    "no": "Não",
+    "save": "Salvar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "copy": "Copiar",
+    "copied": "Copiado!",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "confirm": "Confirmar",
+    "close": "Fechar",
+    "language": "Idioma",
+    "select_language": "Selecionar idioma",
+    "use_device_language": "Usar idioma do dispositivo",
+    "back": "Voltar",
+    "continue": "Continuar",
+    "logout": "Sair"
+  },
+
+
+  "welcome": "Bem-vindo à Bazari",
+  "protect_wallet": "Proteja sua carteira com uma senha segura.",
+  "access_password": "Senha de acesso:",
+  "password_placeholder": "Digite sua senha",
+  "enter_dapp": "Entrar no DApp",
+  "reset_wallet": "Redefinir Carteira",
+  "create_account": "Criar Conta",
+  "errors": {
+  "password_required": "A senha é obrigatória"
+  },
+
+  
+    
+  "createAccount": {
+    "title": "Criar Nova Conta",
+    "description": "Proteja sua carteira com uma senha segura.",
+    "password": "Senha de Acesso",
+    "password_placeholder": "Digite sua senha",
+    "accept_terms": "Aceito os termos de uso e política de privacidade.",
+    "continue": "Avançar",
+    "cancel": "Cancelar",
+    "errors": {
+      "password_required": "Por favor, digite uma senha.",
+      "accept_terms": "Você precisa aceitar os termos para continuar."
+    },
+    "terms_text": "Ao criar uma conta na Bazari, você declara estar ciente de que esta é uma plataforma descentralizada, baseada em tecnologia blockchain, onde não há controle central ou garantias institucionais.\n\nVocê é integralmente responsável por guardar sua seed phrase e sua senha. A perda dessas informações pode resultar na perda permanente do acesso à sua conta, e a Bazari não tem meios técnicos para recuperá-las.\n\nA Bazari não coleta dados pessoais e não exige nenhuma identificação civil. Toda a sua interação ocorre de forma pseudônima e voluntária.\n\nAo continuar, você concorda com os princípios de soberania digital, liberdade individual e responsabilidade sobre sua própria segurança digital."
+    
+  },
+  
+  "showSeed": {
+    "title": "Sua Frase de Recuperação",
+    "description": "Guarde essa frase em um lugar seguro. Ela é a única forma de acessar sua carteira.",
+    "copy": "📋 Copiar frase",
+    "copied": "✅ Frase copiada!",
+    "warning": "⚠️ Não compartilhe essa frase com ninguém!"
+  },
+
+  "validarSeed": {
+    "title": "Validar Seed Phrase",
+    "description": "Por segurança, digite novamente sua Seed Phrase para confirmar que você a anotou corretamente.",
+    "label": "Seed Phrase:",
+    "placeholder": "Digite sua seed phrase completa",
+    "alert": "Certifique-se de digitar exatamente as mesmas palavras, na mesma ordem. Erros impedem o acesso à sua conta.",
+    "confirm": "Confirmar e Continuar",
+    "errors": {
+      "invalid": "Seed incorreta. Verifique a ordem e ortografia."
+    }
+  },
+  
+  "dashboard": {
+    "welcome": "Bem-vindo ao Bazari!",
+    "subtitle": "Escolha abaixo o que deseja acessar:",
+    "atalhos": {
+      "marketplace": "Bazari Shop",
+      "food": "Bazari Local",
+      "rides": "Bazari Rides",
+      "dao": "Bazari DAO",
+      "rede_social": "Bazari Connect",
+      "configuracoes": "Configurações",
+      "administracao": "Bazari Adm"
+    }
+  },
+  
+  "foodHome": {
+    "title": "Bazari Food",
+    "subtitle": "Como deseja acessar?",
+    "asClient": "Sou Cliente",
+    "asVendor": "Sou Comércio/Vendedor",
+    "asDelivery": "Sou Entregador"
+  },
+  
+  "foodCliente": {
+  "filtros": {
+    "chave": "Chave pública do estabelecimento",
+    "nome": "Nome do estabelecimento",
+    "bairro": "Bairro",
+    "cidade": "Cidade",
+    "estado": "Estado",
+    "pais": "País"
+  }
+  },
+
+  "admin": {
+    "title": "Painel Administrativo",
+    "overview": {
+      "title": "📊 Visão Geral",
+      "establishments": "Estabelecimentos",
+      "users": "Usuários",
+      "transactions": "Transações",
+      "governance": "Governança"
+    },
+    "apps": {
+      "title": "⚙️ Administração de Aplicativos"
+    },
+    "app": {
+      "shop": "Bazari Shop",
+      "local": "Bazari Local",
+      "rides": "Bazari Rides",
+      "dao": "Bazari DAO",
+      "connect": "Bazari Connect"
+    },
+    "settings": {
+      "title": "🛠️ Configurações e Logs",
+      "description": "Área reservada para ajustes avançados, logs do sistema e permissões de administradores."
+    }
+  },
+
+  "localAdmin": {
+    "title": "Painel Administrativo - Bazari Local",
+    "subtitle": "Gerencie clientes, vendedores e entregadores para o módulo Bazari Local.",
+    "client": {
+      "title": "Área do Cliente",
+      "desc": "Configurações e histórico de compras do cliente."
+    },
+    "vendor": {
+      "title": "Área do Vendedor",
+      "desc": "Gerencie estabelecimentos, produtos e entregadores."
+    },
+    "delivery": {
+      "title": "Área do Entregador",
+      "desc": "Monte e gerencie grupos de entrega."
+    }
+  },
+
+  "vendor": {
+    "list": {
+      "title": "Meus Estabelecimentos",
+      "status": "Status",
+      "manage": "Gerenciar",
+      "add": "Adicionar Estabelecimento"
+    },
+
+    "add": {
+      "title": "Adicionar Estabelecimento",
+      "name": "Nome do Estabelecimento",
+      "cnpj": "CPF ou CNPJ (opcional)",
+      "city": "Cidade",
+      "state": "Estado",
+      "country": "País",
+      "openingHours": "Horário de Funcionamento",
+      "image": "Imagem do Estabelecimento",
+      "save": "Salvar Estabelecimento"
+    },
+
+    "details": {
+      "title": "Detalhes do Estabelecimento",
+      "noImage": "Nenhuma imagem disponível",
+      "openingHours": "Horário de Funcionamento",
+      "edit": "Editar",
+      "manageProducts": "Gerenciar Produtos",
+      "delete": "Remover Estabelecimento"
+    },
+
+    "products": {
+      "title": "Gerenciar Produtos",
+      "searchPlaceholder": "Buscar produtos...",
+      "addProduct": "Adicionar Produto",
+      "edit": "Editar",
+      "remove": "Remover"
+    },
+
+    "addProduct": {
+      "title": "Adicionar Produto",
+      "name": "Nome do Produto",
+      "namePlaceholder": "Digite o nome",
+      "description": "Descrição",
+      "descriptionPlaceholder": "Digite a descrição",
+      "price": "Preço",
+      "image": "Imagem do Produto",
+      "save": "Salvar Produto"
+    }
+  
+  }
+
+  
+}
+

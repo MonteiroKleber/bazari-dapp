@@ -1,0 +1,191 @@
+{
+
+ "common": {
+    "cancel": "Cancel",
+    "next": "Next",
+    "previous": "Previous",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "language": "Language",
+    "select_language": "Select Language",
+    "use_device_language": "Use Device Language",
+    "back": "Back",
+    "continue": "Continue",
+    "logout": "Logout"
+   },
+
+
+  "welcome": "Welcome to Bazari",
+  "protect_wallet": "Protect your wallet with a secure password.",
+  "access_password": "Access password:",
+  "password_placeholder": "Enter your password",
+  "enter_dapp": "Enter DApp",
+  "reset_wallet": "Reset Wallet",
+  "create_account": "Create Account",
+  "errors": {
+  "password_required": "Password is required"
+   },
+
+  
+  "createAccount": {
+    "title": "Create New Account",
+    "description": "Protect your wallet with a secure password.",
+    "password": "Access Password",
+    "password_placeholder": "Enter your password",
+    "accept_terms": "I accept the terms of use and privacy policy.",
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "errors": {
+      "password_required": "Please enter a password.",
+      "accept_terms": "You must accept the terms to continue."
+    },
+    "terms_text": "By creating an account on Bazari, you acknowledge that this is a decentralized platform based on blockchain technology, with no central control or institutional guarantees.\n\nYou are solely responsible for keeping your seed phrase and password safe. Losing this information may result in permanent loss of access to your account, and Bazari has no technical means to recover it.\n\nBazari does not collect personal data and does not require any civil identification. All your interaction happens pseudonymously and voluntarily.\n\nBy continuing, you agree to the principles of digital sovereignty, individual freedom, and responsibility for your own digital security."
+  },
+  
+  "showSeed": {
+    "title": "Your Recovery Phrase",
+    "description": "Save this phrase in a secure place. It's the only way to access your wallet.",
+    "copy": "📋 Copy phrase",
+    "copied": "✅ Phrase copied!",
+    "warning": "⚠️ Do not share this phrase with anyone!"
+  },
+  
+  "validarSeed": {
+    "title": "Validate Seed Phrase",
+    "description": "For security, retype your seed phrase to confirm you wrote it down correctly.",
+    "label": "Seed Phrase:",
+    "placeholder": "Enter your full seed phrase",
+    "alert": "Make sure you type the exact same words in the correct order. Mistakes will block access to your account.",
+    "confirm": "Confirm and Continue",
+    "errors": {
+      "invalid": "Incorrect seed. Please check the order and spelling."
+    }
+  },
+  
+  "dashboard": {
+    "welcome": "Welcome to Bazari!",
+    "subtitle": "Choose what you want to access:",
+    "atalhos": {
+      "marketplace": "Bazari Shop",
+      "food": "Bazari Local",
+      "rides": "Bazari Rides",
+      "dao": "Bazari DAO",
+      "rede_social": "Bazari Connect",
+      "configuracoes": "Settings",
+      "administracao": "Bazari Adm"
+    }
+  },
+  
+  "foodHome": {
+    "title": "Bazari Food",
+    "subtitle": "How do you want to access?",
+    "asClient": "I am a Customer",
+    "asVendor": "I am a Vendor",
+    "asDelivery": "I am a Delivery Person"
+
+ },
+
+   "admin": {
+    "title": "Admin Panel",
+    "overview": {
+      "title": "📊 Overview",
+      "establishments": "Establishments",
+      "users": "Users",
+      "transactions": "Transactions",
+      "governance": "Governance"
+    },
+    "apps": {
+      "title": "⚙️ App Management"
+    },
+    "app": {
+      "shop": "Bazari Shop",
+      "local": "Bazari Local",
+      "rides": "Bazari Rides",
+      "dao": "Bazari DAO",
+      "connect": "Bazari Connect"
+    },
+    "settings": {
+      "title": "🛠️ Settings and Logs",
+      "description": "Reserved area for advanced settings, system logs, and admin permissions."
+    }
+  },
+
+  "localAdmin": {
+    "title": "Admin Panel - Bazari Local",
+    "subtitle": "Manage customers, vendors, and delivery groups for the Bazari Local module.",
+    "client": {
+      "title": "Customer Area",
+      "desc": "Customer settings and purchase history."
+    },
+    "vendor": {
+      "title": "Vendor Area",
+      "desc": "Manage establishments, products, and delivery staff."
+    },
+    "delivery": {
+      "title": "Delivery Area",
+      "desc": "Create and manage delivery groups."
+    }
+  },
+
+  "vendor": {
+    "list": {
+      "title": "My Establishments",
+      "status": "Status",
+      "manage": "Manage",
+      "add": "Add Establishment"
+    },
+
+    "add": {
+      "title": "Add Establishment",
+      "name": "Establishment Name",
+      "cnpj": "CPF or CNPJ (optional)",
+      "city": "City",
+      "state": "State",
+      "country": "Country",
+      "openingHours": "Opening Hours",
+      "image": "Establishment Image",
+      "save": "Save Establishment"
+    },
+
+    "details": {
+      "title": "Establishment Details",
+      "noImage": "No image available",
+      "openingHours": "Opening Hours",
+      "edit": "Edit",
+      "manageProducts": "Manage Products",
+      "delete": "Delete Establishment"
+    },
+
+    "products":{
+      "title": "Manage Products",
+      "searchPlaceholder": "Search products...",
+      "addProduct": "Add Product",
+      "edit": "Edit",
+      "remove": "Remove"
+    },
+
+    "addProduct": {
+      "title": "Add Product",
+      "name": "Product Name",
+      "namePlaceholder": "Enter name",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter description",
+      "price": "Price",
+      "image": "Product Image",
+      "save": "Save Product"
+    }
+  }
+
+ 
+}
+
