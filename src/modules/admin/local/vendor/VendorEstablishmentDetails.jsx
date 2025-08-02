@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Edit3, Trash2, Package,  Users } from "lucide-react";
+import { ArrowLeft, Edit3, Trash2, Package,  Users, FileText } from "lucide-react";
 import MenuInferior from "../../../../components/MenuInferior";
 
 export default function VendorEstablishmentDetails() {
@@ -92,6 +92,14 @@ export default function VendorEstablishmentDetails() {
               <Users size={20} className="mr-2" /> {t("vendor.details.manageDeliverers")}
             </button>
 
+
+            {/* ✅ Novo botão para histórico de vendas */}
+            <button
+              onClick={() => navigate(`/admin/local/vendor/establishment/${id}/sales-history`)}
+              className="flex items-center justify-center bg-[#FFB300] text-black py-3 rounded-lg hover:shadow-md"
+            >
+              <FileText size={20} className="mr-2" /> {t("vendor.details.salesHistory")}
+            </button>
 
 
             <button

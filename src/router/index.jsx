@@ -23,7 +23,8 @@ import VendorAddProduct from '../modules/admin/local/vendor/VendorAddProduct'
 import VendorRemoveProduct from '../modules/admin/local/vendor/VendorRemoveProduct'  
 import VendorManageDeliverers from '../modules/admin/local/vendor/VendorManageDeliverers'
 import VendorInviteDeliverers from '../modules/admin/local/vendor/VendorInviteDeliverers'
-
+import VendorSalesHistory from '../modules/admin/local/vendor/VendorSalesHistory' 
+import VendorSaleDetails from '../modules/admin/local/vendor/VendorSaleDetails'
 
 export default function Router() {
   return (
@@ -56,6 +57,9 @@ export default function Router() {
         <Route path='/admin/vendor/establishment/:id/product/:id/remove' element={<VendorRemoveProduct />} />                     
         <Route path='/admin/local/vendor/establishment/:id/deliverers' element={<VendorManageDeliverers />} />
         <Route path='/admin/local/vendor/establishment/invite-deliverers' element={<VendorInviteDeliverers />} />
+        <Route path='/admin/local/vendor/establishment/:id/sales-history' element={<VendorSalesHistory />} />
+        <Route path='/admin/local/vendor/sales/details/:id' element={<VendorSaleDetails />} />
+        
 
 
       </Routes>

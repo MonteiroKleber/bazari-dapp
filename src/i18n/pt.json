@@ -227,6 +227,31 @@
     "searchPlaceholder": "Buscar entregadores...",
     "invite": "Convidar",
     "alreadyInvited": "Convidado"
+  },
+
+  "salesHistory": {
+    "title": "Histórico de Vendas",
+    "search": "Buscar por comprador, produto ou status",
+    "buyer": "Comprador",
+    "value": "Valor",
+    "products": "Produtos",
+    "date": "Data",
+    "status": "Status",
+    "noResults": "Nenhuma venda encontrada"
+  },
+
+  "saleDetails": {
+    "title": "Detalhes da Venda",
+    "buyer": "Comprador",
+    "value": "Valor",
+    "products": "Produtos",
+    "date": "Data",
+    "status": "Status",
+    "address": "Endereço de Entrega",
+    "seller": "Vendedor",
+    "paymentTx": "Transação de Pagamento",
+    "notes": "Observações",
+    "notFound": "Venda não encontrada"
   }
 
 

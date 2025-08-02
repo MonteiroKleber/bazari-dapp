@@ -217,7 +217,32 @@
     "searchPlaceholder": "Search deliverers...",
     "invite": "Invite",
     "alreadyInvited": "Invited"
-    }
+    },
+
+    "salesHistory": {
+    "title": "Sales History",
+    "search": "Search by buyer, product or status",
+    "buyer": "Buyer",
+    "value": "Value",
+    "products": "Products",
+    "date": "Date",
+    "status": "Status",
+    "noResults": "No sales found"
+  },
+
+  "saleDetails": {
+    "title": "Sale Details",
+    "buyer": "Buyer",
+    "value": "Value",
+    "products": "Products",
+    "date": "Date",
+    "status": "Status",
+    "address": "Delivery Address",
+    "seller": "Seller",
+    "paymentTx": "Payment Transaction",
+    "notes": "Notes",
+    "notFound": "Sale not found"
+  }
 
 
   },

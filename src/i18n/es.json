@@ -214,7 +214,32 @@
       "searchPlaceholder": "Buscar repartidores...",
       "invite": "Invitar",
       "alreadyInvited": "Invitado"
-    }
+    },
+
+    "salesHistory": {
+    "title": "Historial de Ventas",
+    "search": "Buscar por comprador, producto o estado",
+    "buyer": "Comprador",
+    "value": "Valor",
+    "products": "Productos",
+    "date": "Fecha",
+    "status": "Estado",
+    "noResults": "No se encontraron ventas"
+  },
+
+  "saleDetails": {
+    "title": "Detalles de la Venta",
+    "buyer": "Comprador",
+    "value": "Valor",
+    "products": "Productos",
+    "date": "Fecha",
+    "status": "Estado",
+    "address": "Dirección de Entrega",
+    "seller": "Vendedor",
+    "paymentTx": "Transacción de Pago",
+    "notes": "Notas",
+    "notFound": "Venta no encontrada"
+  }
 
 
   },
