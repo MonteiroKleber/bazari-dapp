@@ -175,7 +175,16 @@
       "openingHours": "Horário de Funcionamento",
       "edit": "Editar",
       "manageProducts": "Gerenciar Produtos",
+      "manageDeliverers": "Gerenciar Entregadores",
       "delete": "Remover Estabelecimento"
+    },
+
+    "deliverers": {
+    "title": "Entregadores",
+    "accept": "Aceitar",
+    "reject": "Recusar",
+    "linked": "Vinculado",
+    "addDeliverer": "Adicionar Entregador"
     },
 
     "products": {
@@ -195,8 +204,40 @@
       "price": "Preço",
       "image": "Imagem do Produto",
       "save": "Salvar Produto"
+    },
+
+    "manageDeliverers": {
+    "title": "Gerenciar Entregadores",
+    "searchPlaceholder": "Buscar entregador...",
+    "unlink": "Desvincular",
+    "delete": "Excluir",
+    "add": "Convidar Entregador",
+    "invite": "Convidar Entregador",
+    "noDeliverers": "Nenhum entregador encontrado",
+    "status": {
+      "pending": "Pendente",
+      "accepted": "Aceito",
+      "rejected": "Recusado",
+      "unlinked": "Desvinculado"
     }
+  },
+
+  "inviteDeliverers": {
+    "title": "Convidar Entregadores",
+    "searchPlaceholder": "Buscar entregadores...",
+    "invite": "Convidar",
+    "alreadyInvited": "Convidado"
+  }
+
+
   
+  },
+
+  "removeProduct":{
+    "title": "Remover Produto",
+    "confirmation": "Tem certeza de que deseja remover este produto?",
+    "confirmButton": "Remover",
+    "cancelButton": "Cancelar"
   }
 
   

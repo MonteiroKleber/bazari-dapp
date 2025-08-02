@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Edit3, Trash2, Package } from "lucide-react";
+import { ArrowLeft, Edit3, Trash2, Package,  Users } from "lucide-react";
 import MenuInferior from "../../../../components/MenuInferior";
 
 export default function VendorEstablishmentDetails() {
@@ -84,6 +84,15 @@ export default function VendorEstablishmentDetails() {
             >
               <Package size={20} className="mr-2" /> {t("vendor.details.manageProducts")}
             </button>
+
+            <button
+              onClick={() => navigate(`/admin/local/vendor/establishment/${id}/deliverers`)}
+              className="flex items-center justify-center bg-[#8B0000] text-white py-3 rounded-lg hover:shadow-md"
+            >
+              <Users size={20} className="mr-2" /> {t("vendor.details.manageDeliverers")}
+            </button>
+
+
 
             <button
               onClick={handleDelete}

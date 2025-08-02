@@ -19,7 +19,10 @@ import VendorEstablishmentsList from '../modules/admin/local/vendor/VendorEstabl
 import VendorAddEstablishment from '../modules/admin/local/vendor/VendorAddEstablishment'
 import VendorEstablishmentDetails from '../modules/admin/local/vendor/VendorEstablishmentDetails'
 import VendorProducts from '../modules/admin/local/vendor/VendorProducts'
-import VendorAddProduct from '../modules/admin/local/vendor/VendorAddProduct'  
+import VendorAddProduct from '../modules/admin/local/vendor/VendorAddProduct'
+import VendorRemoveProduct from '../modules/admin/local/vendor/VendorRemoveProduct'  
+import VendorManageDeliverers from '../modules/admin/local/vendor/VendorManageDeliverers'
+import VendorInviteDeliverers from '../modules/admin/local/vendor/VendorInviteDeliverers'
 
 
 export default function Router() {
@@ -50,9 +53,10 @@ export default function Router() {
         <Route path='/admin/local/vendor/establishment/:id' element={<VendorEstablishmentDetails />} />
         <Route path='/admin/local/vendor/establishment/:id/products' element={<VendorProducts />} />
         <Route path='/admin/vendor/establishment/:id/product/add' element={<VendorAddProduct />} />
-                     
-        
-                
+        <Route path='/admin/vendor/establishment/:id/product/:id/remove' element={<VendorRemoveProduct />} />                     
+        <Route path='/admin/local/vendor/establishment/:id/deliverers' element={<VendorManageDeliverers />} />
+        <Route path='/admin/local/vendor/establishment/invite-deliverers' element={<VendorInviteDeliverers />} />
+
 
       </Routes>
     </HashRouter>

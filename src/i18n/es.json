@@ -161,6 +161,7 @@
       "openingHours": "Horario de Atención",
       "edit": "Editar",
       "manageProducts": "Administrar Productos",
+      "manageDeliverers": "Gestionar Repartidores",
       "delete": "Eliminar Establecimiento"
     },
 
@@ -172,6 +173,14 @@
       "remove": "Eliminar"
     },
 
+    "deliverers": {
+      "title": "Repartidores",
+      "accept": "Aceptar",
+      "reject": "Rechazar",
+      "linked": "Vinculado",
+      "addDeliverer": "Agregar Repartidor"
+    },
+
     "addProduct": {
       "title": "Agregar Producto",
       "name": "Nombre del Producto",
@@ -181,8 +190,44 @@
       "price": "Precio",
       "image": "Imagen del Producto",
       "save": "Guardar Producto"
+    },
+
+    "manageDeliverers": {
+      "title": "Gestionar Repartidores",
+      "searchPlaceholder": "Buscar repartidor...",
+      "unlink": "Desvincular",
+      "delete": "Eliminar",
+      "add": "Invitar Repartidor",
+      "invite": "Invitar Repartidor",
+      
+      "noDeliverers": "No se encontraron repartidores",
+      "status": {
+        "pending": "Pendiente",
+        "accepted": "Aceptado",
+        "rejected": "Rechazado",
+        "unlinked": "Desvinculado"
+      }
+    },
+
+      "inviteDeliverers": {
+      "title": "Invitar Repartidores",
+      "searchPlaceholder": "Buscar repartidores...",
+      "invite": "Invitar",
+      "alreadyInvited": "Invitado"
     }
+
+
+  },
+
+  "removeProduct":{
+    "title": "Eliminar Producto",
+  "confirmation": "¿Estás seguro de que deseas eliminar este producto?",
+  "confirmButton": "Eliminar",
+  "cancelButton": "Cancelar"
   }
+
+  
+
 
 }
 

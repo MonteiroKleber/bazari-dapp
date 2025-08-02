@@ -23,8 +23,7 @@ const VendorProducts = () => {
   const handleEdit = (productId) =>
     navigate(`/admin/vendor/establishment/${id}/product/${productId}/edit`);
   const handleRemove = (productId) => {
-    // 🔗 Aqui será integrada a remoção via BazariChain/IPFS
-    console.log("Remover produto:", productId);
+    navigate(`/admin/vendor/establishment/${id}/product/${productId}/remove`);
   };
 
   return (

@@ -163,6 +163,7 @@
       "openingHours": "Opening Hours",
       "edit": "Edit",
       "manageProducts": "Manage Products",
+      "manageDeliverers": "Manage Deliverers",
       "delete": "Delete Establishment"
     },
 
@@ -174,6 +175,14 @@
       "remove": "Remove"
     },
 
+    "deliverers": {
+    "title": "Deliverers",
+    "accept": "Accept",
+    "reject": "Reject",
+    "linked": "Linked",
+    "addDeliverer": "Add Deliverer"
+    },
+
     "addProduct": {
       "title": "Add Product",
       "name": "Product Name",
@@ -183,8 +192,44 @@
       "price": "Price",
       "image": "Product Image",
       "save": "Save Product"
+    },
+
+    "manageDeliverers": {
+      "title": "Manage Deliverers",
+      "searchPlaceholder": "Search deliverer...",
+      "unlink": "Unlink",
+      "delete": "Delete",
+      "add": "Invite Deliverer",
+      "invite": "Invite Deliverer",
+      
+      "noDeliverers": "No deliverers found",
+      "status": {
+        "pending": "Pending",
+        "accepted": "Accepted",
+        "rejected": "Rejected",
+        "unlinked": "Unlinked"
+      }
+    },
+
+
+    "inviteDeliverers": {
+    "title": "Invite Deliverers",
+    "searchPlaceholder": "Search deliverers...",
+    "invite": "Invite",
+    "alreadyInvited": "Invited"
     }
+
+
+  },
+
+  "removeProduct":{
+    "title": "Remove Product",
+  "confirmation": "Are you sure you want to remove this product?",
+  "confirmButton": "Remove",
+  "cancelButton": "Cancel"
   }
+
+  
 
  
 }
