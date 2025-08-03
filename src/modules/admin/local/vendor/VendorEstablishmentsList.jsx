@@ -32,8 +32,18 @@ export default function VendorEstablishmentsList() {
         <h1 className="text-xl font-bold">{t("vendor.list.title")}</h1>
       </div>
 
+     
       {/* Conteúdo principal */}
       <div className="flex-1 p-6">
+
+        <button
+          onClick={() => navigate("/admin/local/vendor/add")}
+          className="bg-[#FFB300] text-black px-4 py-2 rounded-lg mb-4 hover:bg-[#e6a000] transition"
+        >
+          {t("vendor.list.add")}
+        </button>
+
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {establishments.map((est) => (
             <div
@@ -57,15 +67,7 @@ export default function VendorEstablishmentsList() {
         </div>
       </div>
 
-      {/* Botão adicionar */}
-      <div className="fixed bottom-20 right-4">
-        <button
-          onClick={() => navigate("/admin/local/vendor/add")}
-          className="bg-[#8B0000] text-white px-5 py-3 rounded-full shadow-lg hover:shadow-xl"
-        >
-          + {t("vendor.list.add")}
-        </button>
-      </div>
+      
 
       {/* Rodapé padrão */}
       <MenuInferior />

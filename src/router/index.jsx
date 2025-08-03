@@ -15,6 +15,7 @@ import EstabelecimentoCadastrar from '../modules/bazari-local/EstabelecimentoCad
 
 import AdminDashboard from '../modules/admin/AdminDashboard'
 import LocalAdminHome from '../modules/admin/local/LocalAdminHome'
+
 import VendorEstablishmentsList from '../modules/admin/local/vendor/VendorEstablishmentsList'
 import VendorAddEstablishment from '../modules/admin/local/vendor/VendorAddEstablishment'
 import VendorEstablishmentDetails from '../modules/admin/local/vendor/VendorEstablishmentDetails'
@@ -25,6 +26,7 @@ import VendorManageDeliverers from '../modules/admin/local/vendor/VendorManageDe
 import VendorInviteDeliverers from '../modules/admin/local/vendor/VendorInviteDeliverers'
 import VendorSalesHistory from '../modules/admin/local/vendor/VendorSalesHistory' 
 import VendorSaleDetails from '../modules/admin/local/vendor/VendorSaleDetails'
+import VendorEditEstablishment from '../modules/admin/local/vendor/VendorEditEstablishment'
 
 export default function Router() {
   return (
@@ -59,6 +61,8 @@ export default function Router() {
         <Route path='/admin/local/vendor/establishment/invite-deliverers' element={<VendorInviteDeliverers />} />
         <Route path='/admin/local/vendor/establishment/:id/sales-history' element={<VendorSalesHistory />} />
         <Route path='/admin/local/vendor/sales/details/:id' element={<VendorSaleDetails />} />
+        <Route path='/admin/local/vendor/establishment/:id/edit' element={<VendorEditEstablishment />} />
+        
         
 
 

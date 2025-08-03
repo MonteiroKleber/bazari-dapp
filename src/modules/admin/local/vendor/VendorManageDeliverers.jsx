@@ -71,26 +71,21 @@ export default function VendorManageDeliverers() {
           }}
         />
       </div>
+         
 
-      {/* Botão alinhado verticalmente */}
-      <div className="pl-4 mb-4">
-        
+
+      {/* Lista de entregadores */}
+      <div className="flex-1 p-4 space-y-3">
+
         <button
           onClick={handleNavigateInviteDeliverers}
-          className="bg-[#FFB300] text-black px-4 py-2 rounded-lg font-semibold hover:bg-yellow-500"
+          className="bg-[#FFB300] text-black px-4 py-2 rounded-lg mb-4 hover:bg-[#e6a000] transition"
         >
           {t("vendor.manageDeliverers.invite")}
         </button>
 
 
-      </div>
 
-
-             
-
-
-      {/* Lista de entregadores */}
-      <div className="flex-1 p-4 space-y-3">
         {resultados.length > 0 ? (
           resultados.map((deliverer) => (
             <div

@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "leaflet/dist/leaflet.css";
+
+
 body {
   @apply bg-neutral text-dark font-nunito;
 }

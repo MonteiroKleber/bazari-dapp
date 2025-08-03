@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, QrCode, Camera, MapPin } from "lucide-react";
 import MenuInferior from "../../../../components/MenuInferior";
 import { useTranslation } from "react-i18next";
 import QrScanner from "qr-scanner";
 import { Html5QrcodeScanner } from "html5-qrcode";
-
 import LocationPicker from "../../../../components/LocationPicker";
-import Modal from "react-modal"; // instalar com npm install react-modal
+import Modal from "react-modal";
 
-export default function VendorAddEstablishment() {
+export default function VendorEditEstablishment() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { establishmentId } = useParams();
 
   const [activeTab, setActiveTab] = useState("basic");
-
   const [showMap, setShowMap] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -47,8 +47,6 @@ export default function VendorAddEstablishment() {
     location: { lat: "", lng: "" }
   });
 
-  const [showCameraScanner, setShowCameraScanner] = useState(false);
-
   const categoriesList = [
     { value: "food", label: t("vendor.add.category.food") },
     { value: "fashion", label: t("vendor.add.category.fashion") },
@@ -69,14 +67,33 @@ export default function VendorAddEstablishment() {
   ];
 
   useEffect(() => {
-    if (formData.name) {
-      const suggestedToken = formData.name
-        .replace(/\s+/g, "")
-        .substring(0, 8)
-        .toUpperCase();
-      setFormData((prev) => ({ ...prev, tokenName: suggestedToken }));
-    }
-  }, [formData.name]);
+    // Carregar dados do estabelecimento (exemplo mockado)
+    setFormData({
+      name: "Pastel da Maria",
+      description: "Os melhores pastéis da feira!",
+      tokenName: "PASTMAR",
+      personType: "fisica",
+      document: "123.456.789-00",
+      categories: ["food"],
+      customCategory: "",
+      businessSpecific: "Pastelaria",
+      reach: "municipal",
+      operationType: "fisico",
+      customOperation: "",
+      images: [],
+      coverImage: null,
+      teamMembers: [{ name: "Maria", publicKey: "5F3sa2TJ..." }],
+      newMemberName: "",
+      newMemberKey: "",
+      languages: ["pt"],
+      openingHours: {
+        monday: { open: "08:00", close: "18:00", closed: false },
+        tuesday: { open: "08:00", close: "18:00", closed: false },
+        sunday: { open: "", close: "", closed: true }
+      },
+      location: { lat: "-23.55", lng: "-46.63" }
+    });
+  }, [establishmentId]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -138,16 +155,6 @@ export default function VendorAddEstablishment() {
     }
   };
 
-  const startCameraScanner = () => {
-    setShowCameraScanner(true);
-    const scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
-    scanner.render((decodedText) => {
-      setFormData((prev) => ({ ...prev, newMemberKey: decodedText }));
-      scanner.clear();
-      setShowCameraScanner(false);
-    });
-  };
-
   const addTeamMember = () => {
     if (formData.newMemberName.trim() && formData.newMemberKey.trim()) {
       setFormData((prev) => ({
@@ -171,141 +178,99 @@ export default function VendorAddEstablishment() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Cadastro enviado:", formData);
+    console.log("Alterações salvas:", formData);
     navigate(-1);
   };
 
   return (
     <div className="min-h-screen bg-[#F5F1E0] flex flex-col pb-20">
-      {/* Cabeçalho */}
       <div className="flex items-center bg-[#8B0000] text-white p-4">
         <button onClick={() => navigate(-1)} className="mr-3">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="text-xl font-bold">{t("vendor.add.title")}</h1>
+        <h1 className="text-xl font-bold">{t("vendor.edit.title")}</h1>
       </div>
 
-      {/* Abas */}
+      {/* Tabs */}
       <div className="flex justify-around bg-white shadow p-2">
-        <button onClick={() => setActiveTab("basic")} className={activeTab === "basic" ? "font-bold text-[#8B0000]" : ""}>{t("vendor.add.tabBasic")}</button>
-        <button onClick={() => setActiveTab("appearance")} className={activeTab === "appearance" ? "font-bold text-[#8B0000]" : ""}>{t("vendor.add.tabAppearance")}</button>
-        <button onClick={() => setActiveTab("details")} className={activeTab === "details" ? "font-bold text-[#8B0000]" : ""}>{t("vendor.add.tabDetails")}</button>
-        <button onClick={() => setActiveTab("team")} className={activeTab === "team" ? "font-bold text-[#8B0000]" : ""}>{t("vendor.add.tabTeam")}</button>
-        <button onClick={() => setActiveTab("advanced")} className={activeTab === "advanced" ? "font-bold text-[#8B0000]" : ""}>{t("vendor.add.tabAdvanced")}</button>
+        {["basic", "appearance", "details", "team", "advanced"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={activeTab === tab ? "font-bold text-[#8B0000]" : ""}
+          >
+            {t(`vendor.add.tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`)}
+          </button>
+        ))}
       </div>
 
-      {/* Conteúdo */}
       <div className="flex-1 p-6 bg-white shadow-md rounded-2xl mt-2">
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Basic Tab */}
+          {/* Basic */}
           {activeTab === "basic" && (
             <>
               <div>
-                <label className="block mb-1">{t("vendor.add.name")}</label>
+                <label>{t("vendor.add.name")}</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  required
                   className="w-full p-3 border rounded-lg"
                 />
               </div>
               <div>
-                <label className="block mb-1">{t("vendor.add.description")}</label>
+                <label>{t("vendor.add.description")}</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  required
                   className="w-full p-3 border rounded-lg"
                 />
               </div>
               <div>
-                <label className="block mb-1">{t("vendor.add.tokenName")}</label>
+                <label>{t("vendor.add.tokenName")} (não pode ser alterado)</label>
                 <input
                   type="text"
                   name="tokenName"
                   value={formData.tokenName}
-                  onChange={handleChange}
-                  required
-                  maxLength={8}
-                  className="w-full p-3 border rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block mb-1">{t("vendor.add.personType")}</label>
-                <div className="flex gap-4">
-                  <label>
-                    <input
-                      type="radio"
-                      name="personType"
-                      value="fisica"
-                      checked={formData.personType === "fisica"}
-                      onChange={handleChange}
-                    /> {t("vendor.add.personPhysical")}
-                  </label>
-                  <label>
-                    <input
-                      type="radio"
-                      name="personType"
-                      value="juridica"
-                      checked={formData.personType === "juridica"}
-                      onChange={handleChange}
-                    /> {t("vendor.add.personLegal")}
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label className="block mb-1">{t("vendor.add.document")}</label>
-                <input
-                  type="text"
-                  name="document"
-                  value={formData.document}
-                  onChange={handleChange}
-                  placeholder={
-                    formData.personType === "fisica"
-                      ? t("vendor.add.documentPlaceholderPhysical")
-                      : t("vendor.add.documentPlaceholderLegal")
-                  }
-                  className="w-full p-3 border rounded-lg"
+                  disabled
+                  className="w-full p-3 border rounded-lg bg-gray-200"
                 />
               </div>
             </>
           )}
 
-          {/* Appearance Tab */}
+          {/* Aparência */}
           {activeTab === "appearance" && (
             <>
               <div>
-                <label className="block mb-1">{t("vendor.add.coverImage")}</label>
+                <label>{t("vendor.add.coverImage")}</label>
                 <input
                   type="file"
                   name="coverImage"
                   onChange={handleChange}
-                  accept="image/*"
                   className="w-full p-3 border rounded-lg"
                 />
               </div>
               <div>
-                <label className="block mb-1">{t("vendor.add.images")}</label>
+                <label>{t("vendor.add.images")}</label>
                 <input
                   type="file"
                   name="image"
                   multiple
                   onChange={handleChange}
-                  accept="image/*"
                   className="w-full p-3 border rounded-lg"
                 />
               </div>
             </>
           )}
 
-          {/* Details Tab */}
+          {/* Detalhes */}
           {activeTab === "details" && (
             <>
               <div>
-                <label className="block mb-1">{t("vendor.add.businessCategory")}</label>
+                <label>{t("vendor.add.businessCategory")}</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {categoriesList.map((cat) => (
                     <label key={cat.value} className="flex items-center gap-2">
@@ -321,7 +286,7 @@ export default function VendorAddEstablishment() {
               </div>
               {formData.categories.includes("others") && (
                 <div>
-                  <label className="block mb-1">{t("vendor.add.businessSpecific")}</label>
+                  <label>{t("vendor.add.businessSpecific")}</label>
                   <input
                     type="text"
                     name="customCategory"
@@ -332,7 +297,7 @@ export default function VendorAddEstablishment() {
                 </div>
               )}
               <div>
-                <label className="block mb-1">{t("vendor.add.reach")}</label>
+                <label>{t("vendor.add.reach")}</label>
                 <select
                   name="reach"
                   value={formData.reach}
@@ -345,123 +310,64 @@ export default function VendorAddEstablishment() {
                   <option value="internacional">{t("vendor.add.internacional")}</option>
                 </select>
               </div>
-              
             </>
           )}
 
-          {/* Team Tab */}
+          {/* Equipe */}
           {activeTab === "team" && (
-            <>
-              {showCameraScanner && (
-                <div className="p-4">
-                  <div id="qr-reader" className="w-full h-64"></div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCameraScanner(false)}
-                    className="mt-4 bg-red-500 text-white px-4 py-2 rounded"
-                  >
-                    {t("vendor.add.cancel")}
-                  </button>
-                </div>
-              )}
-
-              {!showCameraScanner && (
-                <div>
-                  <label className="block mb-1">{t("vendor.add.teamMembers")}</label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-                    <input
-                      type="text"
-                      name="newMemberName"
-                      placeholder={t("vendor.add.memberName")}
-                      value={formData.newMemberName}
-                      onChange={handleChange}
-                      className="border rounded-lg p-2"
-                    />
-                    <input
-                      type="text"
-                      name="newMemberKey"
-                      placeholder={t("vendor.add.memberKey")}
-                      value={formData.newMemberKey}
-                      onChange={handleChange}
-                      className="border rounded-lg p-2"
-                    />
-                    <div className="flex flex-col sm:flex-row items-center gap-2">
-                      <label className="bg-gray-200 px-2 py-1 rounded cursor-pointer">
-                        <QrCode size={20} /> {t("vendor.add.scanQR")}
-                        <input
-                          type="file"
-                          onChange={handleQrImageUpload}
-                          className="hidden"
-                          accept="image/*"
-                        />
-                      </label>
-                     
-                      <button
-                        type="button"
-                        onClick={addTeamMember}
-                        className="bg-green-500 text-white px-4 py-2 rounded"
-                      >
-                        {t("vendor.add.add")}
-                      </button>
-                    </div>
-                  </div>
-                  <ul className="list-disc pl-6">
-                    {formData.teamMembers.map((member, index) => (
-                      <li key={index} className="flex justify-between items-center">
-                        {member.name} ({member.publicKey})
-                        <button
-                          type="button"
-                          onClick={() => removeTeamMember(index)}
-                          className="text-red-500 ml-2"
-                        >
-                          {t("vendor.add.remove")}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
+            <div>
+              <label>{t("vendor.add.teamMembers")}</label>
+              <ul className="list-disc pl-6">
+                {formData.teamMembers.map((member, index) => (
+                  <li key={index}>
+                    {member.name} ({member.publicKey})
+                    <button
+                      type="button"
+                      onClick={() => removeTeamMember(index)}
+                      className="text-red-500 ml-2"
+                    >
+                      {t("vendor.add.remove")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
-          {/* Advanced Tab */}
+          {/* Avançado */}
           {activeTab === "advanced" && (
             <>
               <div>
-                <label className="block mb-1">Idiomas Suportados</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {languageOptions.map((lang) => (
-                    <label key={lang.value} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.languages.includes(lang.value)}
-                        onChange={() => toggleLanguage(lang.value)}
-                      />
-                      {lang.label}
-                    </label>
-                  ))}
-                </div>
+                <label>{t("vendor.add.supportedLanguages")}</label>
+                {languageOptions.map((lang) => (
+                  <label key={lang.value} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.languages.includes(lang.value)}
+                      onChange={() => toggleLanguage(lang.value)}
+                    />
+                    {lang.label}
+                  </label>
+                ))}
               </div>
               <div>
-                <label className="block mb-1">{t("vendor.add.openingHours")}</label>
+                <label>{t("vendor.add.openingHours")}</label>
                 {Object.entries(formData.openingHours).map(([day, info]) => (
-                  <div key={day} className="flex items-center gap-2 mb-2">
-                    <span className="capitalize w-24">{day}</span>
+                  <div key={day} className="flex items-center gap-2">
+                    <span>{day}</span>
                     <input
                       type="time"
                       value={info.open}
                       disabled={info.closed}
                       onChange={(e) => handleHourChange(day, "open", e.target.value)}
-                      className="border rounded p-1"
                     />
                     <input
                       type="time"
                       value={info.close}
                       disabled={info.closed}
                       onChange={(e) => handleHourChange(day, "close", e.target.value)}
-                      className="border rounded p-1"
                     />
-                    <label className="flex items-center gap-1">
+                    <label>
                       <input
                         type="checkbox"
                         checked={info.closed}
@@ -472,11 +378,8 @@ export default function VendorAddEstablishment() {
                 ))}
               </div>
               <div>
-                  
-          {/* Geolocalização */}
-              <div>
-                <label className="block mb-1">{t("vendor.add.geolocation")}</label>
-                <div className="flex flex-wrap gap-2 items-center">
+                <label>{t("vendor.add.geolocation")}</label>
+                <div className="flex flex-wrap gap-2">
                   <input
                     type="text"
                     placeholder={t("vendor.add.latitude")}
@@ -487,7 +390,6 @@ export default function VendorAddEstablishment() {
                         location: { ...prev.location, lat: e.target.value },
                       }))
                     }
-                    className="border rounded p-2 flex-1 min-w-[140px]"
                   />
                   <input
                     type="text"
@@ -499,18 +401,15 @@ export default function VendorAddEstablishment() {
                         location: { ...prev.location, lng: e.target.value },
                       }))
                     }
-                    className="border rounded p-2 flex-1 min-w-[140px]"
                   />
                   <button
                     type="button"
                     onClick={() => setShowMap(true)}
                     className="p-2 bg-blue-500 text-white rounded"
                   >
-                    <MapPin className="inline" size={20} />
+                    <MapPin />
                   </button>
                 </div>
-
-                {/* Modal do Mapa */}
                 <Modal
                   isOpen={showMap}
                   onRequestClose={() => setShowMap(false)}
@@ -518,7 +417,6 @@ export default function VendorAddEstablishment() {
                   className="bg-white p-4 rounded shadow-lg w-[95%] max-w-2xl mx-auto mt-20"
                   overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
                 >
-                  <h2 className="text-xl mb-2">Clique no mapa para selecionar a localização</h2>
                   <LocationPicker
                     setLocation={(loc) => {
                       setFormData((prev) => ({
@@ -527,36 +425,15 @@ export default function VendorAddEstablishment() {
                       }));
                       setShowMap(false);
                     }}
-                    initialPosition={
-                      formData.location.lat
-                        ? [parseFloat(formData.location.lat), parseFloat(formData.location.lng)]
-                        : undefined
-                    }
+                    initialPosition={[parseFloat(formData.location.lat), parseFloat(formData.location.lng)]}
                   />
-                  <button
-                    onClick={() => setShowMap(false)}
-                    className="mt-4 px-4 py-2 bg-red-500 text-white rounded w-full sm:w-auto"
-                  >
-                    Fechar
-                  </button>
                 </Modal>
-              </div>
-
-
-
               </div>
             </>
           )}
 
-          <div className="bg-yellow-100 text-yellow-800 p-3 rounded">
-            ⚠️ {t("vendor.add.tokenInfo")}
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-[#FFB300] text-black py-3 rounded-lg hover:shadow-md"
-          >
-            {t("vendor.add.save")}
+          <button type="submit" className="w-full bg-[#FFB300] py-3 rounded-lg">
+            {t("vendor.edit.save")}
           </button>
         </form>
       </div>

@@ -1,57 +1,110 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import MenuInferior from "../../../../components/MenuInferior";
+import BuscaInteligente from "../../../../components/BuscaInteligente";
 import { ArrowLeft } from "lucide-react";
 
 const VendorSalesHistory = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [sales, setSales] = useState([]);
+  const [filteredSales, setFilteredSales] = useState([]);
 
-  // 🔹 Simulação de dados - integrar com IPFS/BazariChain depois
+  // Carrega dados mockados das vendas
   useEffect(() => {
-    setSales([
-      { id: "1", buyer: "0xABC123", value: "50 BZR", products: "Pizza, Refrigerante", date: "2025-07-28 14:20", status: "pago" },
-      { id: "2", buyer: "0xXYZ789", value: "30 BZR", products: "Hambúrguer", date: "2025-07-28 12:45", status: "pago" }
-    ]);
+    const mockSales = [
+      { 
+        id: "1", 
+        buyer: "0xABC123", 
+        value: "50 BZR", 
+        products: "Pizza, Refrigerante", 
+        date: "2025-07-28 14:20", 
+        status: "pago" 
+      },
+      { 
+        id: "2", 
+        buyer: "0xXYZ789", 
+        value: "30 BZR", 
+        products: "Hambúrguer", 
+        date: "2025-07-28 12:45", 
+        status: "pago" 
+      },
+    ];
+    setSales(mockSales);
+    setFilteredSales(mockSales);
   }, []);
 
   const handleBack = () => {
-    window.history.back();
+    navigate(-1);
   };
 
-  const handleViewDetails = (saleId) => {
-    navigate(`/admin/local/vendor/sales/details/${saleId}`);
+  const handleSaleClick = (id) => {
+    navigate(`/admin/local/vendor/sales/details/${id}`);
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F1E0] text-black">
-      {/* 🔙 Header */}
-      <div className="flex items-center p-4 bg-[#8B0000] text-white shadow-md">
-        <button onClick={handleBack} className="mr-3">
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="text-xl font-bold">{t("vendor.salesHistory.title")}</h1>
+    <div className="flex flex-col h-screen bg-[#F5F1E0] text-black">
+      {/* Header */}
+      <div className="flex items-center bg-[#8B0000] text-white p-4 shadow-md">
+        <ArrowLeft
+          onClick={handleBack}
+          className="cursor-pointer mr-4"
+          size={24}
+        />
+        <h1 className="text-xl font-bold">
+          {t("vendor.salesHistory.title")}
+        </h1>
       </div>
 
-      {/* 📜 Lista de Vendas */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        {sales.map((sale) => (
-          <div
-            key={sale.id}
-            className="bg-white shadow-md rounded-xl p-5 mb-4 border-l-4 border-[#FFB300] cursor-pointer hover:bg-gray-100 transition"
-            onClick={() => handleViewDetails(sale.id)}
-          >
-            <p className="font-semibold">{t("vendor.salesHistory.buyer")}: {sale.buyer}</p>
-            <p>{t("vendor.salesHistory.value")}: {sale.value}</p>
-            <p>{t("vendor.salesHistory.products")}: {sale.products}</p>
-            <p>{t("vendor.salesHistory.date")}: {sale.date}</p>            
-          </div>
-        ))}
+      {/* Busca Inteligente */}
+      <div className="p-4">
+        <BuscaInteligente
+          dados={sales}
+          camposBusca={["buyer", "value", "products", "date", "status"]}
+          placeholder={t("vendor.salesHistory.searchPlaceholder")}
+          onResultados={(resultadosFiltrados) => {
+            if (JSON.stringify(resultadosFiltrados) !== JSON.stringify(filteredSales)) {
+              setFilteredSales(resultadosFiltrados);
+            }
+          }}
+        />
       </div>
 
-      {/* Rodapé padrão */}
+      {/* Lista de Vendas */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {filteredSales.length > 0 ? (
+          filteredSales.map((sale) => (
+            <div
+              key={sale.id}
+              onClick={() => handleSaleClick(sale.id)}
+              className="bg-white shadow-md rounded-lg p-4 mb-4 cursor-pointer hover:bg-gray-100"
+            >
+              <p>
+                <strong>{t("vendor.salesHistory.buyer")}:</strong> {sale.buyer}
+              </p>
+              <p>
+                <strong>{t("vendor.salesHistory.value")}:</strong> {sale.value}
+              </p>
+              <p>
+                <strong>{t("vendor.salesHistory.products")}:</strong> {sale.products}
+              </p>
+              <p>
+                <strong>{t("vendor.salesHistory.date")}:</strong> {sale.date}
+              </p>
+              <p>
+                <strong>{t("vendor.salesHistory.status")}:</strong> {sale.status}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-gray-500">
+            {t("vendor.salesHistory.noSales")}
+          </p>
+        )}
+      </div>
+
+      {/* Rodapé */}
       <MenuInferior />
     </div>
   );

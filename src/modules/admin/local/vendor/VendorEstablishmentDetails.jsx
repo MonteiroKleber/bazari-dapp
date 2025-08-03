@@ -72,7 +72,7 @@ export default function VendorEstablishmentDetails() {
           {/* Ações */}
           <div className="flex flex-col space-y-3 mt-4">
             <button
-              onClick={handleEdit}
+              onClick={() => navigate(`/admin/local/vendor/establishment/${id}/edit`)}
               className="flex items-center justify-center bg-[#FFB300] text-black py-3 rounded-lg hover:shadow-md"
             >
               <Edit3 size={20} className="mr-2" /> {t("vendor.details.edit")}
