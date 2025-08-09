@@ -1,9 +1,11 @@
+// src/modules/acesso/useAuthStore.jsx - VERSÃO CORRIGIDA
+
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import authService from '@services/AuthService'
 
 // ===============================
-// AUTH STORE
+// AUTH STORE - CORRIGIDO
 // ===============================
 const useAuthStore = create(
   persist(
@@ -15,7 +17,7 @@ const useAuthStore = create(
       error: null,
 
       // Estado das telas
-      currentScreen: 'initial', // initial, login, create, import
+      currentScreen: 'initial',
       showSeedConfirmation: false,
       generatedSeed: null,
 
@@ -25,11 +27,10 @@ const useAuthStore = create(
       isBlocked: false,
 
       // ===============================
-      // ACTIONS
+      // INICIALIZAÇÃO
       // ===============================
-
-      // Inicializar auth (verificar se já está logado)
       initialize: () => {
+        console.log('🔄 Inicializando auth store...')
         set({ isLoading: true })
         
         try {
@@ -37,40 +38,48 @@ const useAuthStore = create(
           const currentAccount = authService.getCurrentAccount()
 
           if (isLoggedIn && currentAccount) {
+            console.log('✅ Sessão válida encontrada:', currentAccount.address)
             set({
               user: currentAccount,
               isAuthenticated: true,
               isLoading: false,
-              error: null
+              error: null,
+              currentScreen: 'initial' // Reset screen
             })
             return true
           } else {
+            console.log('❌ Nenhuma sessão válida encontrada')
             set({
               user: null,
               isAuthenticated: false,
-              isLoading: false
+              isLoading: false,
+              currentScreen: get().checkExistingAccount() ? 'initial' : 'initial'
             })
             return false
           }
         } catch (error) {
+          console.error('❌ Erro na inicialização:', error)
           set({
             isLoading: false,
-            error: error.message
+            error: error.message,
+            isAuthenticated: false,
+            user: null
           })
           return false
         }
       },
 
-      // Verificar se já existe conta no dispositivo
+      // Verificar se já existe conta
       checkExistingAccount: () => {
         return authService.hasExistingAccount()
       },
 
       // Navegar entre telas
       setScreen: (screen) => {
+        console.log('🔄 Mudando tela para:', screen)
         set({ 
           currentScreen: screen,
-          error: null // Limpar erros ao mudar de tela
+          error: null 
         })
       },
 
@@ -80,48 +89,63 @@ const useAuthStore = create(
       login: async (password) => {
         const state = get()
         
-        // Verificar se está bloqueado
+        // Verificar bloqueio
         if (state.isBlocked) {
           const timeLeft = Math.ceil((state.lastAttemptTime + 300000 - Date.now()) / 1000)
-          throw new Error(`Muitas tentativas. Tente novamente em ${timeLeft} segundos`)
+          throw new Error(`Muitas tentativas. Tente novamente em ${timeLeft}s`)
         }
 
         set({ isLoading: true, error: null })
 
         try {
+          console.log('🔐 Tentando login...')
           const result = await authService.login(password)
 
           if (result.success) {
+            console.log('✅ Login bem-sucedido:', result.user.address)
+            
             set({
-              user: result.account,
+              user: result.user,
               isAuthenticated: true,
               isLoading: false,
               error: null,
               loginAttempts: 0,
               lastAttemptTime: null,
-              isBlocked: false
+              isBlocked: false,
+              currentScreen: 'initial' // Reset screen
             })
-            return { success: true }
+
+            return { success: true, user: result.user }
           } else {
-            // Incrementar tentativas falhas
+            console.log('❌ Login falhou:', result.error)
+            
             const newAttempts = state.loginAttempts + 1
-            const isBlocked = newAttempts >= 5
+            const shouldBlock = newAttempts >= 5
             
             set({
               isLoading: false,
               error: result.error,
               loginAttempts: newAttempts,
-              lastAttemptTime: isBlocked ? Date.now() : state.lastAttemptTime,
-              isBlocked
+              lastAttemptTime: shouldBlock ? Date.now() : state.lastAttemptTime,
+              isBlocked: shouldBlock
             })
 
-            return { success: false, error: result.error }
+            return result
           }
         } catch (error) {
+          console.error('❌ Erro no login:', error)
+          
+          const newAttempts = state.loginAttempts + 1
+          const shouldBlock = newAttempts >= 5
+          
           set({
             isLoading: false,
-            error: error.message
+            error: error.message,
+            loginAttempts: newAttempts,
+            lastAttemptTime: shouldBlock ? Date.now() : state.lastAttemptTime,
+            isBlocked: shouldBlock
           })
+
           return { success: false, error: error.message }
         }
       },
@@ -133,24 +157,32 @@ const useAuthStore = create(
         set({ isLoading: true, error: null })
 
         try {
+          console.log('➕ Criando nova conta...')
           const result = await authService.createAccount(password)
 
           if (result.success) {
+            console.log('✅ Conta criada:', result.user.address)
+            
             set({
+              user: result.user,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
               generatedSeed: result.seedPhrase,
               showSeedConfirmation: true,
-              isLoading: false,
-              error: null
+              currentScreen: 'create'
             })
-            return { success: true, seedPhrase: result.seedPhrase }
+
+            return result
           } else {
             set({
               isLoading: false,
               error: result.error
             })
-            return { success: false, error: result.error }
+            return result
           }
         } catch (error) {
+          console.error('❌ Erro ao criar conta:', error)
           set({
             isLoading: false,
             error: error.message
@@ -159,35 +191,26 @@ const useAuthStore = create(
         }
       },
 
-      // Confirmar seed phrase e finalizar criação da conta
+      // Confirmar seed phrase
       confirmSeedPhrase: async (confirmedSeed) => {
         const state = get()
-        const originalSeed = state.generatedSeed
-
-        if (!originalSeed) {
-          return { success: false, error: 'Seed phrase original não encontrada' }
-        }
-
-        // Comparar seed phrases
-        const original = originalSeed.join(' ').toLowerCase()
-        const confirmed = confirmedSeed.join(' ').toLowerCase()
-
-        if (original !== confirmed) {
-          return { success: false, error: 'Seed phrase não confere. Tente novamente.' }
-        }
-
-        // Se chegou aqui, a conta foi criada com sucesso
-        const currentAccount = authService.getCurrentAccount()
         
-        set({
-          user: currentAccount,
-          isAuthenticated: true,
-          showSeedConfirmation: false,
-          generatedSeed: null,
-          error: null
-        })
+        if (!state.generatedSeed) {
+          throw new Error('Nenhuma seed phrase para confirmar')
+        }
 
-        return { success: true }
+        const isValid = authService.validateSeedPhrase(confirmedSeed.join(' '))
+        
+        if (isValid) {
+          console.log('✅ Seed phrase confirmada')
+          set({
+            showSeedConfirmation: false,
+            generatedSeed: null
+          })
+          return { success: true }
+        } else {
+          throw new Error('Seed phrase não confere')
+        }
       },
 
       // ===============================
@@ -197,24 +220,30 @@ const useAuthStore = create(
         set({ isLoading: true, error: null })
 
         try {
+          console.log('📥 Importando conta...')
           const result = await authService.importAccount(seedPhrase, password)
 
           if (result.success) {
+            console.log('✅ Conta importada:', result.user.address)
+            
             set({
-              user: result.account,
+              user: result.user,
               isAuthenticated: true,
               isLoading: false,
-              error: null
+              error: null,
+              currentScreen: 'initial'
             })
-            return { success: true }
+
+            return result
           } else {
             set({
               isLoading: false,
               error: result.error
             })
-            return { success: false, error: result.error }
+            return result
           }
         } catch (error) {
+          console.error('❌ Erro ao importar conta:', error)
           set({
             isLoading: false,
             error: error.message
@@ -227,68 +256,62 @@ const useAuthStore = create(
       // LOGOUT
       // ===============================
       logout: () => {
-        authService.logout()
-        set({
-          user: null,
-          isAuthenticated: false,
-          currentScreen: 'initial',
-          showSeedConfirmation: false,
-          generatedSeed: null,
-          error: null,
-          loginAttempts: 0,
-          lastAttemptTime: null,
-          isBlocked: false
-        })
+        console.log('🚪 Fazendo logout...')
+        
+        try {
+          authService.logout()
+          
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+            currentScreen: 'initial',
+            showSeedConfirmation: false,
+            generatedSeed: null,
+            loginAttempts: 0,
+            lastAttemptTime: null,
+            isBlocked: false
+          })
+
+          console.log('✅ Logout realizado')
+        } catch (error) {
+          console.error('❌ Erro no logout:', error)
+        }
       },
 
       // ===============================
-      // UTILITY ACTIONS
+      // UTILITÁRIOS
       // ===============================
-      clearError: () => set({ error: null }),
-      
-      resetLoginAttempts: () => set({ 
-        loginAttempts: 0, 
-        lastAttemptTime: null, 
-        isBlocked: false 
-      }),
+      clearError: () => {
+        set({ error: null })
+      },
 
-      // Validar senha
       validatePassword: (password) => {
         return authService.validatePassword(password)
       },
 
-      // Validar seed phrase
       validateSeedPhrase: (seedPhrase) => {
         return authService.validateSeedPhrase(seedPhrase)
       },
 
-      // Gerar nova seed phrase
       generateNewSeed: () => {
         const newSeed = authService.generateSeedPhrase()
         set({ generatedSeed: newSeed })
         return newSeed
       },
 
-      // Limpar todos os dados (para reset completo)
-      clearAllData: () => {
-        authService.clearAllData()
+      resetLoginAttempts: () => {
         set({
-          user: null,
-          isAuthenticated: false,
-          currentScreen: 'initial',
-          showSeedConfirmation: false,
-          generatedSeed: null,
-          error: null,
           loginAttempts: 0,
           lastAttemptTime: null,
-          isBlocked: false,
-          isLoading: false
+          isBlocked: false
         })
       }
     }),
     {
-      name: 'bazari-auth-store',
-      // Não persistir dados sensíveis
+      name: 'bazari-auth',
+      // Só persistir dados não sensíveis
       partialize: (state) => ({
         currentScreen: state.currentScreen,
         loginAttempts: state.loginAttempts,
@@ -303,7 +326,7 @@ const useAuthStore = create(
 // HOOKS ESPECIALIZADOS
 // ===============================
 
-// Hook para verificar se está autenticado
+// Hook principal de autenticação
 export const useAuth = () => {
   const store = useAuthStore()
   return {
@@ -312,11 +335,12 @@ export const useAuth = () => {
     isLoading: store.isLoading,
     error: store.error,
     logout: store.logout,
-    clearError: store.clearError
+    clearError: store.clearError,
+    initialize: store.initialize
   }
 }
 
-// Hook para o fluxo de login
+// Hook para login
 export const useLogin = () => {
   const store = useAuthStore()
   return {
@@ -361,7 +385,7 @@ export const useImportAccount = () => {
   }
 }
 
-// Hook para navegação entre telas
+// Hook para navegação
 export const useAuthNavigation = () => {
   const store = useAuthStore()
   return {

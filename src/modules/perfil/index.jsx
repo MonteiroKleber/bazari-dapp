@@ -1,30 +1,19 @@
+// ===============================
+// PERFIL MODULE INDEX - CORRIGIDO
+// ===============================
+
 import React from 'react'
 import PerfilMain from './PerfilMain'
-import EditProfileModal from './EditProfileModal'
-import BusinessesTab from './BusinessesTab'
-import ActivityTab from './ActivityTab'
-import TokenTab from './TokenTab'
 
 // ===============================
 // PROFILE MODULE MAIN COMPONENT
 // ===============================
 const ProfileModule = () => {
-  return (
-    <>
-      <PerfilMain />
-      <EditProfileModal />
-    </>
-  )
+  return <PerfilMain />
 }
 
 // Export individual components for flexibility
-export { 
-  PerfilMain,
-  EditProfileModal,
-  BusinessesTab,
-  ActivityTab,
-  TokenTab
-}
+export { PerfilMain }
 
 // Export hooks
 export {
