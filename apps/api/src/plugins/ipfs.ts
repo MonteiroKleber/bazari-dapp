@@ -1,11 +1,16 @@
+// apps/api/src/plugins/ipfs.ts
 import fp from 'fastify-plugin'
-import { create, IPFSHTTPClient } from 'ipfs-http-client'
-import { Readable } from 'stream'
+
+// Dynamic import for ESM module
+async function loadIPFS() {
+  const { create } = await import('ipfs-http-client')
+  return { create }
+}
 
 declare module 'fastify' {
   interface FastifyInstance {
     ipfs: {
-      client: IPFSHTTPClient
+      client: any
       addFile: (content: Buffer | Uint8Array | string) => Promise<string>
       addJSON: (data: any) => Promise<string>
       getFile: (cid: string) => Promise<Uint8Array>
@@ -18,6 +23,8 @@ declare module 'fastify' {
 }
 
 export default fp(async (server) => {
+  const { create } = await loadIPFS()
+  
   const client = create({
     url: process.env.IPFS_API_URL || 'http://localhost:5001',
   })

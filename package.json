@@ -11,12 +11,15 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "prepare": "husky install",
- 
     "setup": "pnpm install && pnpm build",
     "check": "node scripts/check-structure.js",
     "check:structure": "node scripts/check-structure.js",
     "check:bash": "bash scripts/check-structure.sh",
-    "check:python": "python scripts/check-structure.py"
+    "check:python": "python scripts/check-structure.py",
+    "fix:dev": "bash scripts/fix-dev-errors.sh",
+    "fix:types": "pnpm --filter @bazari/chain-client exec tsc --noEmit --skipLibCheck || true && pnpm --filter @bazari/wallet-core exec tsc --noEmit --skipLibCheck || true",
+    "reinstall": "rm -rf node_modules pnpm-lock.yaml && pnpm install",
+    "rebuild": "pnpm clean && pnpm install && pnpm build"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
@@ -35,5 +38,12 @@
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@8.12.1"
+  "packageManager": "pnpm@8.12.1",
+  "pnpm": {
+    "overrides": {
+      "@polkadot/util": "12.6.2",
+      "@polkadot/util-crypto": "12.6.2",
+      "@polkadot/keyring": "12.6.2"
+    }
+  }
 }

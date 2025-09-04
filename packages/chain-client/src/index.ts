@@ -1,18 +1,22 @@
-import { ApiPromise, WsProvider } from '@polkadot/api'
-import { Keyring } from '@polkadot/keyring'
-import { KeyringPair } from '@polkadot/keyring/types'
-import { cryptoWaitReady } from '@polkadot/util-crypto'
+// packages/chain-client/src/index.ts
+import { ApiPromise, WsProvider, Keyring } from '@polkadot/api'
+import { KeyringPair$Json } from '@polkadot/keyring/types'
 import { EventEmitter } from 'eventemitter3'
-import type { 
-  SubmittableExtrinsic,
-  AugmentedEvent
-} from '@polkadot/api/types'
-import { BN } from '@polkadot/util'
+import BN from 'bn.js'
+import type { SubmittableExtrinsic } from '@polkadot/api/types'
+import type { ISubmittableResult } from '@polkadot/types/types'
 
-export interface ChainConfig {
-  endpoint: string
+// Types
+export interface ChainClientConfig {
+  wsEndpoint?: string
   types?: Record<string, any>
   rpc?: Record<string, any>
+}
+
+export interface AccountBalance {
+  free: BN
+  reserved: BN
+  frozen: BN
 }
 
 export interface TransferOptions {
@@ -22,127 +26,105 @@ export interface TransferOptions {
   token?: 'BZR' | 'LIVO'
 }
 
-export interface AccountBalance {
-  free: BN
-  reserved: BN
-  frozen: BN
-  flags: BN
+export interface DaoInfo {
+  id: string
+  founder: string
+  name: string
+  description: string
+  ipfsHash: string
+  treasuryAddress: string
+  memberCount: number
+  proposalCount: number
+  created: number
 }
 
-export interface ChainEvents {
-  connected: []
-  disconnected: []
-  ready: []
-  error: [Error]
-  block: [number]
-  transfer: [{ from: string; to: string; amount: string; token: string }]
-  balanceUpdate: [{ address: string; balance: AccountBalance }]
+export interface ProposalInfo {
+  id: number
+  daoId: string
+  proposer: string
+  title: string
+  description: string
+  ipfsHash: string
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Executed'
+  votesFor: BN
+  votesAgainst: BN
+  created: number
+  deadline: number
 }
 
-export class BazariChainClient extends EventEmitter<ChainEvents> {
+export interface MarketplaceListing {
+  id: string
+  daoId: string
+  seller: string
+  title: string
+  description: string
+  price: BN
+  ipfsHash: string
+  category: string
+  status: 'Active' | 'Sold' | 'Cancelled'
+  created: number
+}
+
+// Re-export KeyringPair from the correct location
+import Keyring from '@polkadot/keyring'
+export type KeyringPair = ReturnType<InstanceType<typeof Keyring>['addFromUri']>
+
+export class ChainClient extends EventEmitter {
   private api: ApiPromise | null = null
   private wsProvider: WsProvider | null = null
   private keyring: Keyring | null = null
-  private config: ChainConfig
-  private isConnected = false
-  private reconnectAttempts = 0
-  private maxReconnectAttempts = 5
+  private config: ChainClientConfig
 
-  constructor(config: ChainConfig) {
+  constructor(config: ChainClientConfig = {}) {
     super()
-    this.config = config
+    this.config = {
+      wsEndpoint: config.wsEndpoint || 'ws://localhost:9944',
+      types: config.types || {},
+      rpc: config.rpc || {},
+    }
   }
 
+  // Connection management
   async connect(): Promise<void> {
     try {
-      // Wait for crypto to be ready
-      await cryptoWaitReady()
+      this.wsProvider = new WsProvider(this.config.wsEndpoint)
+      
+      this.api = await ApiPromise.create({
+        provider: this.wsProvider,
+        types: this.config.types,
+        rpc: this.config.rpc,
+      })
+
+      await this.api.isReady
 
       // Initialize keyring
       this.keyring = new Keyring({ type: 'sr25519', ss58Format: 42 })
 
-      // Create WebSocket provider
-      this.wsProvider = new WsProvider(this.config.endpoint)
-
-      // Custom types for BazariChain
-      const types = {
-        Address: 'MultiAddress',
-        LookupSource: 'MultiAddress',
-        Balance: 'u128',
-        DaoId: 'u32',
-        ProposalId: 'u32',
-        ProductId: 'u64',
-        OrderId: 'u64',
-        ...this.config.types
-      }
-
-      // Custom RPC methods
-      const rpc = {
-        dao: {
-          getDao: {
-            description: 'Get DAO by ID',
-            params: [
-              {
-                name: 'daoId',
-                type: 'DaoId'
-              }
-            ],
-            type: 'Option<DaoInfo>'
-          },
-          listDaos: {
-            description: 'List all DAOs',
-            params: [],
-            type: 'Vec<DaoInfo>'
-          }
-        },
-        marketplace: {
-          getProduct: {
-            description: 'Get product by ID',
-            params: [
-              {
-                name: 'productId',
-                type: 'ProductId'
-              }
-            ],
-            type: 'Option<Product>'
-          },
-          getOrder: {
-            description: 'Get order by ID',
-            params: [
-              {
-                name: 'orderId',
-                type: 'OrderId'
-              }
-            ],
-            type: 'Option<Order>'
-          }
-        },
-        ...this.config.rpc
-      }
-
-      // Create API instance
-      this.api = await ApiPromise.create({
-        provider: this.wsProvider,
-        types,
-        rpc
+      // Listen to connected/disconnected events
+      this.api.on('connected', () => {
+        console.log('Connected to chain')
+        this.emit('connected')
       })
 
-      // Wait for chain to be ready
-      await this.api.isReady
+      this.api.on('disconnected', () => {
+        console.log('Disconnected from chain')
+        this.emit('disconnected')
+      })
 
-      this.isConnected = true
-      this.reconnectAttempts = 0
+      this.api.on('ready', () => {
+        console.log('API ready')
+        this.emit('ready')
+      })
 
-      // Subscribe to new blocks
-      this.subscribeToBlocks()
+      this.api.on('error', (error: Error) => {
+        console.error('API error:', error)
+        this.emit('error', error)
+      })
 
-      // Setup event listeners
-      this.setupEventListeners()
-
+      console.log('Chain client connected successfully')
       this.emit('connected')
-      this.emit('ready')
     } catch (error) {
-      this.emit('error', error as Error)
+      console.error('Failed to connect to chain:', error)
       throw error
     }
   }
@@ -151,88 +133,115 @@ export class BazariChainClient extends EventEmitter<ChainEvents> {
     if (this.api) {
       await this.api.disconnect()
       this.api = null
-    }
-    if (this.wsProvider) {
-      this.wsProvider.disconnect()
       this.wsProvider = null
+      this.keyring = null
+      this.emit('disconnected')
     }
-    this.isConnected = false
-    this.emit('disconnected')
   }
 
-  private async reconnect(): Promise<void> {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.emit('error', new Error('Max reconnection attempts reached'))
-      return
-    }
+  isConnected(): boolean {
+    return this.api !== null && this.api.isConnected
+  }
 
-    this.reconnectAttempts++
-    console.log(`Reconnecting... Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`)
-
-    await new Promise(resolve => setTimeout(resolve, 2000 * this.reconnectAttempts))
+  // Chain information
+  async getChainInfo(): Promise<any> {
+    if (!this.api) throw new Error('API not connected')
     
-    try {
-      await this.connect()
-    } catch (error) {
-      console.error('Reconnection failed:', error)
-      await this.reconnect()
+    const [chain, nodeName, nodeVersion, chainType] = await Promise.all([
+      this.api.rpc.system.chain(),
+      this.api.rpc.system.name(),
+      this.api.rpc.system.version(),
+      this.api.rpc.system.chainType ? this.api.rpc.system.chainType() : Promise.resolve(null),
+    ])
+
+    return {
+      chain: chain.toString(),
+      nodeName: nodeName.toString(),
+      nodeVersion: nodeVersion.toString(),
+      chainType: chainType ? chainType.toString() : 'Development',
     }
   }
 
-  private subscribeToBlocks(): void {
-    if (!this.api) return
-
-    this.api.rpc.chain.subscribeNewHeads((header) => {
-      this.emit('block', header.number.toNumber())
-    }).catch(error => {
-      console.error('Block subscription error:', error)
-      this.emit('error', error)
-    })
+  async getBlock(hash?: string): Promise<any> {
+    if (!this.api) throw new Error('API not connected')
+    
+    const signedBlock = hash
+      ? await this.api.rpc.chain.getBlock(hash)
+      : await this.api.rpc.chain.getBlock()
+      
+    return signedBlock.toJSON()
   }
 
-  private setupEventListeners(): void {
-    if (!this.api) return
+  async getBlockNumber(): Promise<number> {
+    if (!this.api) throw new Error('API not connected')
+    
+    const blockNumber = await this.api.query.system.number()
+    return blockNumber.toNumber()
+  }
 
-    // Listen for system events
-    this.api.query.system.events((events) => {
-      events.forEach((record) => {
-        const { event } = record
-        
-        // Handle transfer events
-        if (event.section === 'balances' && event.method === 'Transfer') {
-          const [from, to, amount] = event.data
-          this.emit('transfer', {
-            from: from.toString(),
-            to: to.toString(),
-            amount: amount.toString(),
-            token: 'BZR'
-          })
-        }
+  async getBlockHash(blockNumber?: number): Promise<string> {
+    if (!this.api) throw new Error('API not connected')
+    
+    const blockHash = blockNumber !== undefined
+      ? await this.api.rpc.chain.getBlockHash(blockNumber)
+      : await this.api.rpc.chain.getBlockHash()
+      
+    return blockHash.toString()
+  }
 
-        // Handle LIVO transfer events (cashback token)
-        if (event.section === 'cashback' && event.method === 'Rewarded') {
-          const [to, amount] = event.data
-          this.emit('transfer', {
-            from: 'system',
-            to: to.toString(),
-            amount: amount.toString(),
-            token: 'LIVO'
-          })
+  // Event subscriptions
+  subscribeNewHeads(callback: (header: any) => void): () => void {
+    if (!this.api) throw new Error('API not connected')
+    
+    let unsubscribe: (() => void) | null = null
+    
+    this.api.rpc.chain.subscribeNewHeads((header) => {
+      callback(header.toJSON())
+    }).then(unsub => {
+      unsubscribe = unsub
+    })
+    
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
+  }
+
+  subscribeEvents(callback: (events: any[]) => void): () => void {
+    if (!this.api) throw new Error('API not connected')
+    
+    let unsubscribe: (() => void) | null = null
+    
+    this.api.query.system.events((events: any) => {
+      const decoded = events.map((record: any) => {
+        const { event, phase } = record
+        const types = event.typeDef
+
+        return {
+          phase: phase.toString(),
+          section: event.section,
+          method: event.method,
+          data: event.data.toString(),
+          documentation: event.meta.docs.map((d: any) => d.toString()),
         }
       })
-    }).catch(error => {
-      console.error('Event subscription error:', error)
-      this.emit('error', error)
+      
+      callback(decoded)
+    }).then(unsub => {
+      unsubscribe = unsub
     })
+    
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
   }
 
-  // Account management
-  addAccount(seed: string, meta?: Record<string, any>): KeyringPair {
+  // Keyring management
+  addAccountFromSeed(seed: string, meta: Record<string, any> = {}): KeyringPair {
     if (!this.keyring) throw new Error('Keyring not initialized')
     return this.keyring.addFromUri(seed, meta)
   }
 
-  addAccountFromJson(json: any, password?: string): KeyringPair {
+  addAccountFromJson(json: KeyringPair$Json, password?: string): KeyringPair {
     if (!this.keyring) throw new Error('Keyring not initialized')
     const pair = this.keyring.addFromJson(json)
     if (password) {
@@ -251,15 +260,20 @@ export class BazariChainClient extends EventEmitter<ChainEvents> {
     if (!this.api) throw new Error('API not connected')
     
     const account = await this.api.query.system.account(address)
-    return account.data as any
+    const data = account as any
+    return {
+      free: new BN(data.data.free.toString()),
+      reserved: new BN(data.data.reserved.toString()),
+      frozen: new BN(data.data.frozen?.toString() || '0')
+    }
   }
 
   async getLivoBalance(address: string): Promise<BN> {
     if (!this.api) throw new Error('API not connected')
     
     // Query LIVO balance from cashback pallet
-    const balance = await (this.api.query as any).cashback.balances(address)
-    return new BN(balance.toString())
+    const balance = await (this.api.query as any).cashback?.balances(address)
+    return new BN(balance?.toString() || '0')
   }
 
   // Transfers
@@ -276,13 +290,19 @@ export class BazariChainClient extends EventEmitter<ChainEvents> {
       if (token === 'BZR') {
         tx = this.api!.tx.balances.transferKeepAlive(to, amountBN)
       } else if (token === 'LIVO') {
-        tx = (this.api!.tx as any).cashback.transfer(to, amountBN)
+        tx = (this.api!.tx as any).cashback?.transfer(to, amountBN)
+        if (!tx) {
+          reject(new Error('LIVO transfer not available'))
+          return
+        }
       } else {
         reject(new Error(`Unsupported token: ${token}`))
         return
       }
 
-      tx.signAndSend(from, { nonce: -1 }, ({ status, events, dispatchError }) => {
+      tx.signAndSend(from, { nonce: -1 }, (result: ISubmittableResult) => {
+        const { status, dispatchError } = result
+        
         if (status.isInBlock) {
           console.log(`Transaction included in block ${status.asInBlock}`)
         }
@@ -318,169 +338,125 @@ export class BazariChainClient extends EventEmitter<ChainEvents> {
     creator: KeyringPair,
     name: string,
     description: string,
-    metadata: string
+    ipfsHash: string
   ): Promise<string> {
     if (!this.api) throw new Error('API not connected')
 
     return new Promise((resolve, reject) => {
       let unsub: (() => void) | null = null
 
-      const tx = (this.api!.tx as any).daoRegistry.createDao(name, description, metadata)
+      const tx = (this.api!.tx as any).daoRegistry?.createDao(name, description, ipfsHash)
+      if (!tx) {
+        reject(new Error('DAO registry not available'))
+        return
+      }
 
-      tx.signAndSend(creator, { nonce: -1 }, ({ status, dispatchError }) => {
+      tx.signAndSend(creator, { nonce: -1 }, (result: ISubmittableResult) => {
+        const { status, dispatchError } = result
+
         if (status.isFinalized) {
           if (dispatchError) {
-            reject(new Error('Failed to create DAO'))
+            let errorMessage = 'Failed to create DAO'
+            if (dispatchError.isModule) {
+              const decoded = this.api!.registry.findMetaError(dispatchError.asModule)
+              errorMessage = `${decoded.section}.${decoded.name}: ${decoded.docs.join(' ')}`
+            }
+            reject(new Error(errorMessage))
           } else {
             resolve(status.asFinalized.toString())
           }
           if (unsub) unsub()
         }
-      }).then((unsubscribe: () => void) => {
+      }).then(unsubscribe => {
         unsub = unsubscribe
       }).catch(reject)
     })
   }
 
   // Marketplace operations
-  async createProduct(
+  async createListing(
     seller: KeyringPair,
-    daoId: number,
+    daoId: string,
     title: string,
-    priceBzr: string,
-    metadataCid: string
+    description: string,
+    price: string | BN,
+    category: string,
+    ipfsHash: string
   ): Promise<string> {
     if (!this.api) throw new Error('API not connected')
+
+    const priceBN = typeof price === 'string' ? new BN(price) : price
 
     return new Promise((resolve, reject) => {
       let unsub: (() => void) | null = null
 
-      const tx = (this.api!.tx as any).marketplace.createProduct(
+      const tx = (this.api!.tx as any).marketplace?.createListing(
         daoId,
         title,
-        priceBzr,
-        metadataCid
+        description,
+        priceBN,
+        category,
+        ipfsHash
       )
 
-      tx.signAndSend(seller, { nonce: -1 }, ({ status, dispatchError }) => {
+      if (!tx) {
+        reject(new Error('Marketplace not available'))
+        return
+      }
+
+      tx.signAndSend(seller, { nonce: -1 }, (result: ISubmittableResult) => {
+        const { status, dispatchError } = result
+
         if (status.isFinalized) {
           if (dispatchError) {
-            reject(new Error('Failed to create product'))
+            let errorMessage = 'Failed to create listing'
+            if (dispatchError.isModule) {
+              const decoded = this.api!.registry.findMetaError(dispatchError.asModule)
+              errorMessage = `${decoded.section}.${decoded.name}`
+            }
+            reject(new Error(errorMessage))
           } else {
             resolve(status.asFinalized.toString())
           }
           if (unsub) unsub()
         }
-      }).then((unsubscribe: () => void) => {
+      }).then(unsubscribe => {
         unsub = unsubscribe
       }).catch(reject)
     })
   }
 
-  async createOrder(
-    buyer: KeyringPair,
-    productId: number,
-    quantity: number
-  ): Promise<string> {
-    if (!this.api) throw new Error('API not connected')
-
-    return new Promise((resolve, reject) => {
-      let unsub: (() => void) | null = null
-
-      const tx = (this.api!.tx as any).marketplace.createOrder(productId, quantity)
-
-      tx.signAndSend(buyer, { nonce: -1 }, ({ status, dispatchError }) => {
-        if (status.isFinalized) {
-          if (dispatchError) {
-            reject(new Error('Failed to create order'))
-          } else {
-            resolve(status.asFinalized.toString())
-          }
-          if (unsub) unsub()
-        }
-      }).then((unsubscribe: () => void) => {
-        unsub = unsubscribe
-      }).catch(reject)
-    })
-  }
-
-  // Utility methods
+  // Utility functions
   formatBalance(balance: BN, decimals: number = 12): string {
     const divisor = new BN(10).pow(new BN(decimals))
     const beforeDecimal = balance.div(divisor).toString()
     const afterDecimal = balance.mod(divisor).toString().padStart(decimals, '0')
     
     // Remove trailing zeros
-    const trimmedAfterDecimal = afterDecimal.replace(/0+$/, '')
+    const trimmed = afterDecimal.replace(/0+$/, '')
     
-    if (trimmedAfterDecimal.length === 0) {
+    if (trimmed.length === 0) {
       return beforeDecimal
     }
     
-    return `${beforeDecimal}.${trimmedAfterDecimal}`
+    return `${beforeDecimal}.${trimmed}`
   }
 
-  parseBalance(amount: string, decimals: number = 12): BN {
-    const [whole, fraction = ''] = amount.split('.')
-    const fractionPadded = fraction.padEnd(decimals, '0').slice(0, decimals)
-    const combined = whole + fractionPadded
-    return new BN(combined)
-  }
-
-  // Development utilities
-  async fundAccount(address: string, amount: string = '1000000000000000'): Promise<void> {
-    if (!this.api) throw new Error('API not connected')
+  parseAmount(amount: string, decimals: number = 12): BN {
+    const parts = amount.split('.')
+    const wholePart = parts[0] || '0'
+    const decimalPart = (parts[1] || '').padEnd(decimals, '0').slice(0, decimals)
     
-    // In development, use Alice to fund accounts
-    const alice = this.keyring!.addFromUri('//Alice')
-    await this.transfer({
-      from: alice,
-      to: address,
-      amount: new BN(amount)
-    })
-  }
-
-  // Getters
-  get isReady(): boolean {
-    return this.isConnected && this.api !== null
-  }
-
-  get chainApi(): ApiPromise | null {
-    return this.api
-  }
-
-  get genesisHash(): string {
-    if (!this.api) throw new Error('API not connected')
-    return this.api.genesisHash.toString()
-  }
-
-  get chainName(): string {
-    if (!this.api) throw new Error('API not connected')
-    return this.api.runtimeChain.toString()
-  }
-
-  get chainVersion(): string {
-    if (!this.api) throw new Error('API not connected')
-    return this.api.runtimeVersion.toString()
+    const wholeValue = new BN(wholePart).mul(new BN(10).pow(new BN(decimals)))
+    const decimalValue = new BN(decimalPart)
+    
+    return wholeValue.add(decimalValue)
   }
 }
 
-// Export types and utilities
-export { Keyring, KeyringPair } from '@polkadot/keyring'
-export type { KeypairType, KeyringOptions } from '@polkadot/keyring/types'
-export { cryptoWaitReady, mnemonicGenerate, mnemonicValidate } from '@polkadot/util-crypto'
-export { BN } from '@polkadot/util'
+// Export utilities
+export { BN } from 'bn.js'
+export { mnemonicGenerate, mnemonicValidate } from '@polkadot/util-crypto'
 
-// Default instance for development
-let defaultClient: BazariChainClient | null = null
-
-export function getChainClient(endpoint?: string): BazariChainClient {
-  if (!defaultClient) {
-    defaultClient = new BazariChainClient({
-      endpoint: endpoint || process.env.CHAIN_ENDPOINT || 'ws://localhost:9944'
-    })
-  }
-  return defaultClient
-}
-
-export default BazariChainClient
+// Default export
+export default ChainClient
