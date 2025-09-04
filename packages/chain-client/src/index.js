@@ -5,15 +5,10 @@ import { EventEmitter } from 'eventemitter3';
 import BN from 'bn.js';
 // ---------- ChainClient ----------
 export class ChainClient extends EventEmitter {
-    api = null;
-    provider = null;
-    unsubNewHeads;
-    unsubFinalizedHeads;
-    endpoint;
-    types;
-    rpc;
     constructor(config = {}) {
         super();
+        this.api = null;
+        this.provider = null;
         this.endpoint = config.wsEndpoint ?? 'ws://127.0.0.1:9944';
         this.types = config.types;
         this.rpc = config.rpc;
