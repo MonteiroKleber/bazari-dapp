@@ -1,0 +1,222 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "create": "Create",
+    "update": "Update",
+    "view": "View",
+    "download": "Download",
+    "upload": "Upload",
+    "share": "Share",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "language": "Language",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System"
+  },
+  "hero": {
+    "title": "Welcome to Bazari Digital Nation",
+    "subtitle": "Decentralized popular economy through blockchain",
+    "description": "Join the economic revolution: create your SubDAO, sell products and services, participate in governance and receive LIVO cashback on every transaction.",
+    "cta": {
+      "getStarted": "Get Started",
+      "learnMore": "Learn More"
+    }
+  },
+  "features": {
+    "title": "Complete Ecosystem",
+    "subtitle": "Everything you need in one place",
+    "wallet": {
+      "title": "Native Wallet",
+      "description": "Manage your BZR and LIVO securely, without external extensions."
+    },
+    "marketplace": {
+      "title": "Marketplace",
+      "description": "Buy and sell products and services using BZR, with automatic LIVO cashback."
+    },
+    "dao": {
+      "title": "SubDAOs",
+      "description": "Create and manage your own decentralized business with integrated governance."
+    },
+    "studio": {
+      "title": "Bazari Studio",
+      "description": "Generate complete systems without code, integrated with blockchain and IPFS."
+    },
+    "p2p": {
+      "title": "P2P & Exchange",
+      "description": "Exchange BZR for fiat currencies directly with other users."
+    },
+    "social": {
+      "title": "Social Network",
+      "description": "Connect with the community, share experiences and do business."
+    }
+  },
+  "modules": {
+    "title": "System Modules",
+    "wallet": "Wallet",
+    "marketplace": "Marketplace",
+    "dao": "DAOs",
+    "studio": "Studio",
+    "p2p": "P2P/Exchange",
+    "social": "Social Network",
+    "profile": "Profile",
+    "dashboard": "Dashboard",
+    "governance": "Governance"
+  },
+  "economics": {
+    "title": "Fair Economics",
+    "subtitle": "Automatic split on every transaction",
+    "seller": "Seller/Operator",
+    "dao_treasury": "SubDAO Treasury",
+    "validators": "Validators/Infra",
+    "cashback": "LIVO Cashback"
+  },
+  "cta": {
+    "title": "Ready to join the revolution?",
+    "subtitle": "Create your account and start using the Bazari ecosystem today",
+    "button": "Create Free Account"
+  },
+  "footer": {
+    "description": "Bazari - Decentralized Digital Nation. Popular, democratic and sustainable economy.",
+    "links": {
+      "title": "Quick Links",
+      "about": "About",
+      "docs": "Documentation",
+      "blog": "Blog",
+      "support": "Support"
+    },
+    "community": {
+      "title": "Community",
+      "discord": "Discord",
+      "telegram": "Telegram",
+      "twitter": "Twitter",
+      "github": "GitHub"
+    },
+    "legal": {
+      "title": "Legal",
+      "terms": "Terms of Service",
+      "privacy": "Privacy",
+      "cookies": "Cookies"
+    },
+    "copyright": "© 2024 Bazari. All rights reserved."
+  },
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "economics": "Economics",
+    "docs": "Documentation",
+    "login": "Login",
+    "register": "Register"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "description": "Unlock your wallet to continue",
+      "button": "Unlock",
+      "noAccount": "Don't have an account? Create now"
+    },
+    "register": {
+      "title": "Create New Wallet",
+      "description": "Set up your Bazari wallet in a few steps",
+      "button": "Continue",
+      "complete": "Create Wallet"
+    },
+    "fields": {
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm password"
+    },
+    "seed": {
+      "title": "Your Recovery Phrase",
+      "description": "Write down these 24 words in a safe place. You'll need them to recover your wallet.",
+      "phrase": "Recovery Phrase",
+      "warning": "Never share your recovery phrase. Anyone with access to it can steal your funds.",
+      "confirm": "I have saved my recovery phrase securely"
+    },
+    "terms": {
+      "title": "Terms of Use",
+      "accept": "I have read and accept the terms of use and privacy policy"
+    },
+    "success": {
+      "title": "Wallet Created!",
+      "description": "Redirecting to your wallet..."
+    },
+    "errors": {
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "seedNotConfirmed": "Please confirm you saved your recovery phrase",
+      "seedGenerationFailed": "Failed to generate recovery phrase",
+      "termsNotAccepted": "You must accept the terms of use",
+      "registrationFailed": "Registration failed",
+      "passwordRequired": "Password is required",
+      "loginFailed": "Login failed"
+    }
+  },
+  "wallet": {
+    "title": "Wallet",
+    "activeAccount": "Active Account",
+    "balance": "Balance",
+    "reserved": "Reserved",
+    "pendingIn": "Incoming",
+    "pendingOut": "Outgoing",
+    "native": "Native",
+    "send": "Send",
+    "receive": "Receive",
+    "newAccount": "New Account",
+    "exportSeed": "Export Seed",
+    "backup": "Backup",
+    "security": "Security",
+    "recentTransactions": "Recent Transactions",
+    "transactionsDescription": "Your latest BZR and LIVO transactions",
+    "noTransactions": "No transactions yet",
+    "from": "From",
+    "to": "To",
+    "amount": "Amount",
+    "max": "Max",
+    "estimatedFee": "Estimated fee",
+    "total": "Total",
+    "address": "Address",
+    "downloadQR": "Download QR Code",
+    "transactionSent": "Transaction Sent!",
+    "txHash": "Hash",
+    "received": "Received",
+    "sent": "Sent",
+    "viewOnExplorer": "View on Explorer",
+    "accounts": "Accounts",
+    "createAccount": "Create Account",
+    "accountName": "Account Name",
+    "accountNamePlaceholder": "E.g. Main Account",
+    "accountType": "Account Type",
+    "deriveAccount": "Derive from Master Seed",
+    "deriveDescription": "Creates a new account from the master seed",
+    "newSeed": "New Separate Seed",
+    "newSeedDescription": "Generates a new independent seed",
+    "importSeed": "Import Seed",
+    "importDescription": "Import an existing seed",
+    "derivationPath": "Derivation Path",
+    "seedPhrase": "Seed Phrase",
+    "enterSeedPhrase": "Enter your 24-word recovery phrase",
+    "create": "Create",
+    "errors": {
+      "addressRequired": "Address is required",
+      "amountRequired": "Amount is required",
+      "insufficientBalance": "Insufficient balance"
+    }
+  }
+}

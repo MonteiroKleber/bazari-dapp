@@ -1,0 +1,537 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User and Authentication
+model User {
+  id                String    @id @default(uuid())
+  walletAddress     String    @unique
+  username          String?   @unique
+  email             String?   @unique
+  name              String?
+  bio               String?
+  avatar            String?
+  avatarCid         String?   // IPFS CID for avatar
+  coverImage        String?
+  coverImageCid     String?   // IPFS CID for cover
+  
+  // Terms acceptance
+  termsAccepted     Boolean   @default(false)
+  termsAcceptedAt   DateTime?
+  termsVersion      String?
+  
+  // Settings
+  language          String    @default("pt-BR")
+  theme             String    @default("dark")
+  notifications     Json      @default("{}")
+  
+  // Status
+  role              UserRole  @default(CITIZEN)
+  status            UserStatus @default(ACTIVE)
+  verified          Boolean   @default(false)
+  verifiedAt        DateTime?
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastLoginAt       DateTime?
+  
+  // Relations
+  daos              DaoMember[]
+  products          Product[]
+  services          ServiceOffering[]
+  orders            Order[]
+  proposals         Proposal[]
+  votes             Vote[]
+  transactions      Transaction[]
+  sessions          Session[]
+  
+  @@index([walletAddress])
+  @@index([username])
+  @@index([email])
+  @@index([createdAt])
+}
+
+model Session {
+  id            String   @id @default(uuid())
+  userId        String
+  token         String   @unique
+  deviceInfo    Json?
+  ipAddress     String?
+  userAgent     String?
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+// DAOs
+model Dao {
+  id              String    @id @default(uuid())
+  chainId         Int?      @unique // ID on blockchain
+  name            String
+  slug            String    @unique
+  description     String?
+  mission         String?
+  vision          String?
+  values          String[]
+  
+  // Visual
+  logo            String?
+  logoCid         String?
+  banner          String?
+  bannerCid       String?
+  
+  // Config
+  category        String
+  subcategory     String?
+  tags            String[]
+  
+  // Treasury
+  treasuryAddress String?
+  treasuryBzr     Decimal   @default(0) @db.Decimal(20, 12)
+  
+  // Governance
+  proposalThreshold Decimal @default(100) @db.Decimal(20, 12)
+  votingPeriod    Int       @default(259200) // 3 days in seconds
+  quorum          Int       @default(51) // percentage
+  
+  // Status
+  status          DaoStatus @default(ACTIVE)
+  verified        Boolean   @default(false)
+  
+  // Metadata
+  metadata        Json?
+  metadataCid     String?
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  members         DaoMember[]
+  products        Product[]
+  services        ServiceOffering[]
+  proposals       Proposal[]
+  
+  @@index([slug])
+  @@index([category])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model DaoMember {
+  id          String        @id @default(uuid())
+  daoId       String
+  userId      String
+  role        DaoRole       @default(MEMBER)
+  shares      Decimal       @default(0) @db.Decimal(20, 12)
+  joinedAt    DateTime      @default(now())
+  
+  dao         Dao           @relation(fields: [daoId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([daoId, userId])
+  @@index([daoId])
+  @@index([userId])
+}
+
+// Categories and Products
+model Category {
+  id           String   @id            // slug único
+  parentId     String?
+  kind         String                 // "product" | "service"
+  level        Int                    // 1..4
+  namePt       String
+  nameEn       String
+  nameEs       String
+  pathSlugs    String[] @db.Text      // ex: ["tecnologia","eletronicos","celulares"]
+  pathNamesPt  String[] @db.Text
+  pathNamesEn  String[] @db.Text
+  pathNamesEs  String[] @db.Text
+  active       Boolean  @default(true)
+  sort         Int      @default(0)
+
+  @@index([kind, level])
+  @@index([parentId])
+}
+
+model CategorySpec {
+  id          String   @id @default(cuid())
+  categoryId  String
+  version     String               // semântico, ex: 1.0.0
+  inheritsFrom String?             // opcional (outro categoryId)
+  jsonSchema  Json
+  uiSchema    Json
+  indexHints  String[] @db.Text    // campos importantes para index
+  createdAt   DateTime @default(now())
+
+  @@index([categoryId])
+}
+
+model Product {
+  id              String   @id @default(uuid())
+  daoId           String
+  userId          String
+  chainProductId  Int?     @unique
+  
+  title           String
+  description     String?
+  priceBzr        Decimal  @db.Decimal(20, 12)
+  
+  categoryId      String                // FK -> Category.id (kind = product)
+  categoryPath    String[] @db.Text
+  attributes      Json                  // validado pelo CategorySpec efetivo
+  attributesSpecVersion String
+  
+  // Media
+  images          String[]
+  imagesCids      String[]
+  
+  // Stock
+  stockQuantity   Int      @default(0)
+  stockUnit       String   @default("unit")
+  
+  // Status
+  status          ProductStatus @default(ACTIVE)
+  featured        Boolean  @default(false)
+  
+  // Metadata
+  metadata        Json?
+  cid             String?  // IPFS CID
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  dao             Dao      @relation(fields: [daoId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id])
+  orders          OrderItem[]
+  
+  @@index([daoId])
+  @@index([userId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ServiceOffering {
+  id              String   @id @default(uuid())
+  daoId           String
+  userId          String
+  chainServiceId  Int?     @unique
+  
+  title           String
+  description     String?
+  basePriceBzr    Decimal? @db.Decimal(20, 12) // pode ser null para "sob consulta"
+  priceType       String   @default("fixed") // fixed, hourly, daily, custom
+  
+  categoryId      String                // FK -> Category.id (kind = service)
+  categoryPath    String[] @db.Text
+  attributes      Json
+  attributesSpecVersion String
+  
+  // Availability
+  availability    Json     // schedule, location, etc.
+  duration        Int?     // in minutes
+  maxBookings     Int?     // concurrent bookings
+  
+  // Media
+  images          String[]
+  imagesCids      String[]
+  portfolio       Json?    // portfolio items
+  
+  // Status
+  status          ServiceStatus @default(ACTIVE)
+  featured        Boolean  @default(false)
+  
+  // Metadata
+  metadata        Json?
+  cid             String?  // IPFS CID
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  dao             Dao      @relation(fields: [daoId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id])
+  
+  @@index([daoId])
+  @@index([userId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Orders
+model Order {
+  id              String   @id @default(uuid())
+  chainOrderId    Int?     @unique
+  buyerId         String
+  sellerId        String?
+  daoId           String?
+  
+  // Totals
+  subtotalBzr     Decimal  @db.Decimal(20, 12)
+  taxBzr          Decimal  @default(0) @db.Decimal(20, 12)
+  feeBzr          Decimal  @default(0) @db.Decimal(20, 12)
+  totalBzr        Decimal  @db.Decimal(20, 12)
+  
+  // Payment
+  paymentMethod   String   @default("BZR")
+  paymentStatus   PaymentStatus @default(PENDING)
+  paidAt          DateTime?
+  txHash          String?
+  
+  // Delivery
+  deliveryMethod  String?
+  deliveryAddress Json?
+  deliveryStatus  DeliveryStatus @default(PENDING)
+  deliveredAt     DateTime?
+  
+  // Status
+  status          OrderStatus @default(PENDING)
+  notes           String?
+  
+  // IPFS
+  receiptCid      String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  buyer           User     @relation(fields: [buyerId], references: [id])
+  items           OrderItem[]
+  
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([daoId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  productId   String?
+  serviceId   String?
+  
+  title       String
+  priceBzr    Decimal  @db.Decimal(20, 12)
+  quantity    Int
+  totalBzr    Decimal  @db.Decimal(20, 12)
+  
+  metadata    Json?
+  
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
+  
+  @@index([orderId])
+  @@index([productId])
+  @@index([serviceId])
+}
+
+// Governance
+model Proposal {
+  id              String   @id @default(uuid())
+  chainProposalId Int?     @unique
+  daoId           String
+  proposerId      String
+  
+  title           String
+  description     String
+  category        ProposalCategory
+  
+  // For funding proposals
+  amountRequested Decimal? @db.Decimal(20, 12)
+  recipient       String?
+  
+  // Voting
+  startBlock      Int?
+  endBlock        Int?
+  votesFor        Decimal  @default(0) @db.Decimal(20, 12)
+  votesAgainst    Decimal  @default(0) @db.Decimal(20, 12)
+  votesAbstain    Decimal  @default(0) @db.Decimal(20, 12)
+  
+  // Status
+  status          ProposalStatus @default(DRAFT)
+  executed        Boolean  @default(false)
+  executedAt      DateTime?
+  executionTxHash String?
+  
+  // IPFS
+  cid             String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  dao             Dao      @relation(fields: [daoId], references: [id], onDelete: Cascade)
+  proposer        User     @relation(fields: [proposerId], references: [id])
+  votes           Vote[]
+  
+  @@index([daoId])
+  @@index([proposerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Vote {
+  id          String   @id @default(uuid())
+  proposalId  String
+  voterId     String
+  vote        VoteChoice
+  weight      Decimal  @db.Decimal(20, 12)
+  reason      String?
+  txHash      String?
+  
+  createdAt   DateTime @default(now())
+  
+  proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  voter       User     @relation(fields: [voterId], references: [id])
+  
+  @@unique([proposalId, voterId])
+  @@index([proposalId])
+  @@index([voterId])
+}
+
+// Transactions
+model Transaction {
+  id          String   @id @default(uuid())
+  chainTxHash String?  @unique
+  fromAddress String
+  toAddress   String
+  
+  type        TransactionType
+  token       String   @default("BZR") // BZR or LIVO
+  amount      Decimal  @db.Decimal(20, 12)
+  fee         Decimal  @default(0) @db.Decimal(20, 12)
+  
+  status      TransactionStatus @default(PENDING)
+  blockNumber Int?
+  
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+  
+  user        User?    @relation(fields: [fromAddress], references: [walletAddress])
+  
+  @@index([fromAddress])
+  @@index([toAddress])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Enums
+enum UserRole {
+  CITIZEN
+  DAO_OWNER
+  VALIDATOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum DaoRole {
+  FOUNDER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum DaoStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  DISSOLVED
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  OUT_OF_STOCK
+  DISCONTINUED
+}
+
+enum ServiceStatus {
+  DRAFT
+  ACTIVE
+  UNAVAILABLE
+  DISCONTINUED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DeliveryStatus {
+  PENDING
+  PREPARING
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+}
+
+enum ProposalCategory {
+  FUNDING
+  GOVERNANCE
+  PRODUCT
+  SERVICE
+  PARTNERSHIP
+  OTHER
+}
+
+enum ProposalStatus {
+  DRAFT
+  ACTIVE
+  PASSED
+  REJECTED
+  EXECUTED
+  CANCELLED
+}
+
+enum VoteChoice {
+  FOR
+  AGAINST
+  ABSTAIN
+}
+
+enum TransactionType {
+  TRANSFER
+  PURCHASE
+  DAO_FUNDING
+  CASHBACK
+  FEE
+  OTHER
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}

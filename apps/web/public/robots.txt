@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://bazari.io/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Disallow admin areas (when implemented)
+Disallow: /admin/
+Disallow: /api/
+Disallow: /.well-known/

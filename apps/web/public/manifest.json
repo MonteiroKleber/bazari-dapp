@@ -1,0 +1,58 @@
+{
+  "name": "Bazari - Nação Digital Descentralizada",
+  "short_name": "Bazari",
+  "description": "Ecossistema descentralizado de economia popular através da blockchain",
+  "theme_color": "#8B0000",
+  "background_color": "#1C1C1C",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["finance", "business", "social"],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-1.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-2.png",
+      "type": "image/png",
+      "sizes": "750x1334",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Carteira",
+      "short_name": "Carteira",
+      "description": "Acesse sua carteira BZR",
+      "url": "/wallet",
+      "icons": [{ "src": "/wallet-icon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Marketplace",
+      "short_name": "Marketplace",
+      "description": "Explore produtos e serviços",
+      "url": "/marketplace",
+      "icons": [{ "src": "/marketplace-icon.png", "sizes": "96x96" }]
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 28 28 28;
+    --foreground: 245 241 224;
+    
+    --muted: 28 28 28;
+    --muted-foreground: 245 241 224;
+    
+    --popover: 28 28 28;
+    --popover-foreground: 245 241 224;
+    
+    --card: 28 28 28;
+    --card-foreground: 245 241 224;
+    
+    --border: 139 0 0;
+    --input: 139 0 0;
+    
+    --primary: 139 0 0;
+    --primary-foreground: 255 255 255;
+    
+    --secondary: 255 179 0;
+    --secondary-foreground: 28 28 28;
+    
+    --accent: 255 179 0;
+    --accent-foreground: 28 28 28;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --ring: 139 0 0;
+    
+    --radius: 0.75rem;
+  }
+  
+  .dark {
+    --background: 28 28 28;
+    --foreground: 245 241 224;
+    
+    --muted: 45 45 45;
+    --muted-foreground: 245 241 224;
+    
+    --popover: 28 28 28;
+    --popover-foreground: 245 241 224;
+    
+    --card: 35 35 35;
+    --card-foreground: 245 241 224;
+    
+    --border: 139 0 0;
+    --input: 139 0 0;
+    
+    --primary: 139 0 0;
+    --primary-foreground: 255 255 255;
+    
+    --secondary: 255 179 0;
+    --secondary-foreground: 28 28 28;
+    
+    --accent: 255 179 0;
+    --accent-foreground: 28 28 28;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
+    
+    --ring: 139 0 0;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-bazari-black text-bazari-sand;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+  }
+  
+  /* Scrollbar customization */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-bazari-black;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-bazari-red rounded-md;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-bazari-gold;
+  }
+}
+
+@layer utilities {
+  /* Animações customizadas */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(255, 179, 0, 0.8);
+    }
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  /* Gradientes Bazari */
+  .gradient-bazari {
+    background: linear-gradient(135deg, #8B0000 0%, #FFB300 100%);
+  }
+  
+  .gradient-bazari-dark {
+    background: linear-gradient(135deg, #1C1C1C 0%, #8B0000 50%, #FFB300 100%);
+  }
+  
+  /* Text gradient */
+  .text-gradient-bazari {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-bazari-red to-bazari-gold;
+  }
+}

@@ -1,0 +1,222 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "next": "Próximo",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "create": "Criar",
+    "update": "Atualizar",
+    "view": "Visualizar",
+    "download": "Baixar",
+    "upload": "Enviar",
+    "share": "Compartilhar",
+    "copy": "Copiar",
+    "copied": "Copiado!",
+    "language": "Idioma",
+    "theme": "Tema",
+    "dark": "Escuro",
+    "light": "Claro",
+    "system": "Sistema"
+  },
+  "hero": {
+    "title": "Bem-vindo à Nação Digital Bazari",
+    "subtitle": "Economia popular descentralizada através da blockchain",
+    "description": "Junte-se à revolução econômica: crie sua SubDAO, venda produtos e serviços, participe da governança e receba cashback LIVO em cada transação.",
+    "cta": {
+      "getStarted": "Começar Agora",
+      "learnMore": "Saiba Mais"
+    }
+  },
+  "features": {
+    "title": "Ecossistema Completo",
+    "subtitle": "Tudo que você precisa em um só lugar",
+    "wallet": {
+      "title": "Carteira Nativa",
+      "description": "Gerencie seus BZR e LIVO com segurança, sem precisar de extensões externas."
+    },
+    "marketplace": {
+      "title": "Marketplace",
+      "description": "Compre e venda produtos e serviços usando BZR, com cashback automático em LIVO."
+    },
+    "dao": {
+      "title": "SubDAOs",
+      "description": "Crie e gerencie seu próprio negócio descentralizado com governança integrada."
+    },
+    "studio": {
+      "title": "Bazari Studio",
+      "description": "Gere sistemas completos sem código, integrados com blockchain e IPFS."
+    },
+    "p2p": {
+      "title": "P2P & Câmbio",
+      "description": "Troque BZR por moedas fiduciárias diretamente com outros usuários."
+    },
+    "social": {
+      "title": "Rede Social",
+      "description": "Conecte-se com a comunidade, compartilhe experiências e faça negócios."
+    }
+  },
+  "modules": {
+    "title": "Módulos do Sistema",
+    "wallet": "Carteira",
+    "marketplace": "Marketplace",
+    "dao": "DAOs",
+    "studio": "Studio",
+    "p2p": "P2P/Câmbio",
+    "social": "Rede Social",
+    "profile": "Perfil",
+    "dashboard": "Dashboard",
+    "governance": "Governança"
+  },
+  "economics": {
+    "title": "Economia Justa",
+    "subtitle": "Split automático em cada transação",
+    "seller": "Vendedor/Operador",
+    "dao_treasury": "Tesouro da SubDAO",
+    "validators": "Validadores/Infra",
+    "cashback": "Cashback LIVO"
+  },
+  "cta": {
+    "title": "Pronto para fazer parte da revolução?",
+    "subtitle": "Crie sua conta e comece a usar o ecossistema Bazari hoje mesmo",
+    "button": "Criar Conta Grátis"
+  },
+  "footer": {
+    "description": "Bazari - Nação Digital Descentralizada. Economia popular, democrática e sustentável.",
+    "links": {
+      "title": "Links Rápidos",
+      "about": "Sobre",
+      "docs": "Documentação",
+      "blog": "Blog",
+      "support": "Suporte"
+    },
+    "community": {
+      "title": "Comunidade",
+      "discord": "Discord",
+      "telegram": "Telegram",
+      "twitter": "Twitter",
+      "github": "GitHub"
+    },
+    "legal": {
+      "title": "Legal",
+      "terms": "Termos de Uso",
+      "privacy": "Privacidade",
+      "cookies": "Cookies"
+    },
+    "copyright": "© 2024 Bazari. Todos os direitos reservados."
+  },
+  "nav": {
+    "home": "Início",
+    "features": "Recursos",
+    "economics": "Economia",
+    "docs": "Documentação",
+    "login": "Entrar",
+    "register": "Cadastrar"
+  },
+  "auth": {
+    "login": {
+      "title": "Bem-vindo de volta",
+      "description": "Desbloqueie sua carteira para continuar",
+      "button": "Desbloquear",
+      "noAccount": "Não tem uma conta? Crie agora"
+    },
+    "register": {
+      "title": "Criar Nova Carteira",
+      "description": "Configure sua carteira Bazari em poucos passos",
+      "button": "Continuar",
+      "complete": "Criar Carteira"
+    },
+    "fields": {
+      "username": "Nome de usuário",
+      "email": "E-mail",
+      "password": "Senha",
+      "confirmPassword": "Confirmar senha"
+    },
+    "seed": {
+      "title": "Sua Frase de Recuperação",
+      "description": "Anote estas 24 palavras em um local seguro. Você precisará delas para recuperar sua carteira.",
+      "phrase": "Frase de Recuperação",
+      "warning": "Nunca compartilhe sua frase de recuperação. Qualquer pessoa com acesso a ela pode roubar seus fundos.",
+      "confirm": "Eu salvei minha frase de recuperação com segurança"
+    },
+    "terms": {
+      "title": "Termos de Uso",
+      "accept": "Li e aceito os termos de uso e política de privacidade"
+    },
+    "success": {
+      "title": "Carteira Criada!",
+      "description": "Redirecionando para sua carteira..."
+    },
+    "errors": {
+      "passwordTooShort": "A senha deve ter pelo menos 8 caracteres",
+      "passwordMismatch": "As senhas não coincidem",
+      "seedNotConfirmed": "Por favor, confirme que salvou sua frase de recuperação",
+      "seedGenerationFailed": "Falha ao gerar frase de recuperação",
+      "termsNotAccepted": "Você deve aceitar os termos de uso",
+      "registrationFailed": "Falha no registro",
+      "passwordRequired": "Senha é obrigatória",
+      "loginFailed": "Falha no login"
+    }
+  },
+  "wallet": {
+    "title": "Carteira",
+    "activeAccount": "Conta Ativa",
+    "balance": "Saldo",
+    "reserved": "Reservado",
+    "pendingIn": "Recebendo",
+    "pendingOut": "Enviando",
+    "native": "Nativo",
+    "send": "Enviar",
+    "receive": "Receber",
+    "newAccount": "Nova Conta",
+    "exportSeed": "Exportar Seed",
+    "backup": "Backup",
+    "security": "Segurança",
+    "recentTransactions": "Transações Recentes",
+    "transactionsDescription": "Suas últimas transações de BZR e LIVO",
+    "noTransactions": "Nenhuma transação ainda",
+    "from": "De",
+    "to": "Para",
+    "amount": "Valor",
+    "max": "Máx",
+    "estimatedFee": "Taxa estimada",
+    "total": "Total",
+    "address": "Endereço",
+    "downloadQR": "Baixar QR Code",
+    "transactionSent": "Transação Enviada!",
+    "txHash": "Hash",
+    "received": "Recebido",
+    "sent": "Enviado",
+    "viewOnExplorer": "Ver no Explorer",
+    "accounts": "Contas",
+    "createAccount": "Criar Conta",
+    "accountName": "Nome da Conta",
+    "accountNamePlaceholder": "Ex: Conta Principal",
+    "accountType": "Tipo de Conta",
+    "deriveAccount": "Derivar da Seed Principal",
+    "deriveDescription": "Cria uma nova conta a partir da seed mestre",
+    "newSeed": "Nova Seed Separada",
+    "newSeedDescription": "Gera uma nova seed independente",
+    "importSeed": "Importar Seed",
+    "importDescription": "Importa uma seed existente",
+    "derivationPath": "Caminho de Derivação",
+    "seedPhrase": "Frase Seed",
+    "enterSeedPhrase": "Digite sua frase de recuperação de 24 palavras",
+    "create": "Criar",
+    "errors": {
+      "addressRequired": "Endereço é obrigatório",
+      "amountRequired": "Valor é obrigatório",
+      "insufficientBalance": "Saldo insuficiente"
+    }
+  }
+}

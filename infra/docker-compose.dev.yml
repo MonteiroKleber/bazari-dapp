@@ -1,0 +1,116 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: bazari-postgres
+    environment:
+      POSTGRES_USER: bazari
+      POSTGRES_PASSWORD: bazari
+      POSTGRES_DB: bazari_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bazari-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bazari"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: bazari-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bazari-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # IPFS Node
+  ipfs:
+    image: ipfs/kubo:v0.24.0
+    container_name: bazari-ipfs
+    environment:
+      IPFS_PROFILE: server
+      IPFS_PATH: /data/ipfs
+    ports:
+      - "4001:4001"  # Swarm
+      - "5001:5001"  # API
+      - "8080:8080"  # Gateway
+    volumes:
+      - ipfs_data:/data/ipfs
+      - ./ipfs:/data/ipfs-config:ro
+    networks:
+      - bazari-network
+    command: daemon --migrate=true --enable-namesys-pubsub
+
+  # OpenSearch (optional for development)
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: bazari-opensearch
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - bazari-network
+
+  # OpenSearch Dashboards (optional)
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.11.0
+    container_name: bazari-opensearch-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    networks:
+      - bazari-network
+    depends_on:
+      - opensearch
+
+  # Adminer (Database UI)
+  adminer:
+    image: adminer:4-standalone
+    container_name: bazari-adminer
+    ports:
+      - "8081:8080"
+    networks:
+      - bazari-network
+    depends_on:
+      - postgres
+    environment:
+      ADMINER_DESIGN: pepa-linha-dark
+      ADMINER_DEFAULT_SERVER: postgres
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ipfs_data:
+    driver: local
+  opensearch_data:
+    driver: local
+
+networks:
+  bazari-network:
+    driver: bridge
+    name: bazari-network

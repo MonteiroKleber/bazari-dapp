@@ -1,0 +1,126 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "submit": "Enviar",
+    "create": "Crear",
+    "update": "Actualizar",
+    "view": "Ver",
+    "download": "Descargar",
+    "upload": "Subir",
+    "share": "Compartir",
+    "copy": "Copiar",
+    "copied": "¡Copiado!",
+    "language": "Idioma",
+    "theme": "Tema",
+    "dark": "Oscuro",
+    "light": "Claro",
+    "system": "Sistema"
+  },
+  "hero": {
+    "title": "Bienvenido a la Nación Digital Bazari",
+    "subtitle": "Economía popular descentralizada a través de blockchain",
+    "description": "Únete a la revolución económica: crea tu SubDAO, vende productos y servicios, participa en la gobernanza y recibe cashback LIVO en cada transacción.",
+    "cta": {
+      "getStarted": "Comenzar Ahora",
+      "learnMore": "Saber Más"
+    }
+  },
+  "features": {
+    "title": "Ecosistema Completo",
+    "subtitle": "Todo lo que necesitas en un solo lugar",
+    "wallet": {
+      "title": "Cartera Nativa",
+      "description": "Administra tus BZR y LIVO con seguridad, sin extensiones externas."
+    },
+    "marketplace": {
+      "title": "Marketplace",
+      "description": "Compra y vende productos y servicios usando BZR, con cashback automático en LIVO."
+    },
+    "dao": {
+      "title": "SubDAOs",
+      "description": "Crea y gestiona tu propio negocio descentralizado con gobernanza integrada."
+    },
+    "studio": {
+      "title": "Bazari Studio",
+      "description": "Genera sistemas completos sin código, integrados con blockchain e IPFS."
+    },
+    "p2p": {
+      "title": "P2P e Intercambio",
+      "description": "Intercambia BZR por monedas fiduciarias directamente con otros usuarios."
+    },
+    "social": {
+      "title": "Red Social",
+      "description": "Conéctate con la comunidad, comparte experiencias y haz negocios."
+    }
+  },
+  "modules": {
+    "title": "Módulos del Sistema",
+    "wallet": "Cartera",
+    "marketplace": "Marketplace",
+    "dao": "DAOs",
+    "studio": "Studio",
+    "p2p": "P2P/Cambio",
+    "social": "Red Social",
+    "profile": "Perfil",
+    "dashboard": "Dashboard",
+    "governance": "Gobernanza"
+  },
+  "economics": {
+    "title": "Economía Justa",
+    "subtitle": "División automática en cada transacción",
+    "seller": "Vendedor/Operador",
+    "dao_treasury": "Tesoro de la SubDAO",
+    "validators": "Validadores/Infra",
+    "cashback": "Cashback LIVO"
+  },
+  "cta": {
+    "title": "¿Listo para ser parte de la revolución?",
+    "subtitle": "Crea tu cuenta y comienza a usar el ecosistema Bazari hoy mismo",
+    "button": "Crear Cuenta Gratis"
+  },
+  "footer": {
+    "description": "Bazari - Nación Digital Descentralizada. Economía popular, democrática y sostenible.",
+    "links": {
+      "title": "Enlaces Rápidos",
+      "about": "Acerca de",
+      "docs": "Documentación",
+      "blog": "Blog",
+      "support": "Soporte"
+    },
+    "community": {
+      "title": "Comunidad",
+      "discord": "Discord",
+      "telegram": "Telegram",
+      "twitter": "Twitter",
+      "github": "GitHub"
+    },
+    "legal": {
+      "title": "Legal",
+      "terms": "Términos de Uso",
+      "privacy": "Privacidad",
+      "cookies": "Cookies"
+    },
+    "copyright": "© 2024 Bazari. Todos los derechos reservados."
+  },
+  "nav": {
+    "home": "Inicio",
+    "features": "Recursos",
+    "economics": "Economía",
+    "docs": "Documentación",
+    "login": "Entrar",
+    "register": "Registrar"
+  }
+}

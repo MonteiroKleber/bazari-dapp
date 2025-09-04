@@ -1,0 +1,65 @@
+{
+  "API": {
+    "HTTPHeaders": {
+      "Access-Control-Allow-Origin": [
+        "http://localhost:5173",
+        "http://localhost:3333",
+        "https://bazari.io"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET",
+        "POST",
+        "PUT"
+      ],
+      "Access-Control-Allow-Headers": [
+        "Authorization"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Location"
+      ],
+      "Access-Control-Allow-Credentials": [
+        "true"
+      ]
+    }
+  },
+  "Gateway": {
+    "HTTPHeaders": {
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET"
+      ],
+      "Access-Control-Allow-Headers": [
+        "X-Requested-With",
+        "Range"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Range",
+        "Content-Length",
+        "Accept-Ranges"
+      ]
+    },
+    "PublicGateways": {
+      "localhost": {
+        "UseSubdomains": false,
+        "Paths": ["/ipfs", "/ipns"]
+      }
+    }
+  },
+  "Swarm": {
+    "AddrFilters": null,
+    "ConnMgr": {
+      "GracePeriod": "300s",
+      "HighWater": 900,
+      "LowWater": 600,
+      "Type": "basic"
+    }
+  },
+  "Bootstrap": [
+    "/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+    "/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+    "/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
+    "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt"
+  ]
+}

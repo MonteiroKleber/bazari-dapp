@@ -1,0 +1,24 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "prisma.prisma",
+    "ms-vscode.vscode-typescript-next",
+    "christian-kohler.path-intellisense",
+    "formulahendry.auto-rename-tag",
+    "steoates.autoimport",
+    "usernamehw.errorlens",
+    "mikestead.dotenv",
+    "rust-lang.rust-analyzer",
+    "tamasfe.even-better-toml",
+    "github.copilot",
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    "donjayamanne.githistory",
+    "wix.vscode-import-cost",
+    "christian-kohler.npm-intellisense",
+    "csstools.postcss",
+    "lokalise.i18n-ally"
+  ]
+}
