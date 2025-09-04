@@ -12,6 +12,124 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      '@noble/curves':
+        specifier: ^1.4.0
+        version: 1.4.0
+      '@noble/hashes':
+        specifier: ^1.4.0
+        version: 1.4.0
+      '@polkadot/networks':
+        specifier: ^13.5.6
+        version: 13.5.6
+      '@polkadot/util':
+        specifier: 12.6.2
+        version: 12.6.2
+      '@polkadot/util-crypto':
+        specifier: 12.6.2
+        version: 12.6.2(@polkadot/util@12.6.2)
+      '@polkadot/wasm-bridge':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6)
+      '@polkadot/wasm-crypto':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6)
+      '@polkadot/wasm-crypto-asmjs':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/wasm-crypto-init':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6)
+      '@polkadot/wasm-crypto-wasm':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/wasm-util':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/x-bigint':
+        specifier: ^13.5.6
+        version: 13.5.6
+      '@polkadot/x-global':
+        specifier: ^13.5.6
+        version: 13.5.6
+      '@polkadot/x-randomvalues':
+        specifier: ^13.5.6
+        version: 13.5.6(@polkadot/util@12.6.2)(@polkadot/wasm-util@7.5.1)
+      '@polkadot/x-textdecoder':
+        specifier: ^13.5.6
+        version: 13.5.6
+      '@polkadot/x-textencoder':
+        specifier: ^13.5.6
+        version: 13.5.6
+      '@prisma/client':
+        specifier: ^5.7.1
+        version: 5.22.0(prisma@5.22.0)
+      '@radix-ui/react-compose-refs':
+        specifier: ^1.1.2
+        version: 1.1.2(@types/react@18.3.24)(react@18.3.1)
+      '@radix-ui/react-slot':
+        specifier: ^1.2.3
+        version: 1.2.3(@types/react@18.3.24)(react@18.3.1)
+      '@remix-run/router':
+        specifier: ^1.19.2
+        version: 1.19.2
+      '@scure/base':
+        specifier: ^2.0.0
+        version: 2.0.0
+      '@substrate/ss58-registry':
+        specifier: ^1.51.0
+        version: 1.51.0
+      bn.js:
+        specifier: ^5.2.2
+        version: 5.2.2
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      cookie:
+        specifier: ^1.0.2
+        version: 1.0.2
+      dijkstrajs:
+        specifier: ^1.0.3
+        version: 1.0.3
+      html-parse-stringify:
+        specifier: ^3.0.1
+        version: 3.0.1
+      invariant:
+        specifier: ^2.2.4
+        version: 2.2.4
+      prisma:
+        specifier: ^5.7.1
+        version: 5.22.0
+      qrcode:
+        specifier: ^1.5.3
+        version: 1.5.4
+      react-fast-compare:
+        specifier: ^3.2.2
+        version: 3.2.2
+      react-helmet-async:
+        specifier: ^2.0.5
+        version: 2.0.5(react@18.3.1)
+      react-router:
+        specifier: ^6.26.2
+        version: 6.26.2(react@18.3.1)
+      react-router-dom:
+        specifier: ^6.26.2
+        version: 6.26.2(react-dom@18.3.1)(react@18.3.1)
+      scheduler:
+        specifier: ^0.26.0
+        version: 0.26.0
+      set-cookie-parser:
+        specifier: ^2.7.1
+        version: 2.7.1
+      shallowequal:
+        specifier: ^1.1.0
+        version: 1.1.0
+      use-sync-external-store:
+        specifier: ^1.5.0
+        version: 1.5.0(react@18.3.1)
+      void-elements:
+        specifier: ^3.1.0
+        version: 3.1.0
     devDependencies:
       '@types/node':
         specifier: ^20.10.5
@@ -40,11 +158,17 @@ importers:
       prettier:
         specifier: ^3.1.1
         version: 3.6.2
+      rimraf:
+        specifier: ^5
+        version: 5.0.10
+      tsup:
+        specifier: 8.5.0
+        version: 8.5.0(typescript@5.9.2)
       turbo:
         specifier: ^1.11.2
         version: 1.13.4
       typescript:
-        specifier: ^5.3.3
+        specifier: ^5.9.2
         version: 5.9.2
 
   apps/api:
@@ -77,7 +201,7 @@ importers:
         specifier: ^8.3.1
         version: 8.3.1
       '@prisma/client':
-        specifier: ^5.7.1
+        specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
       argon2:
         specifier: ^0.31.2
@@ -111,7 +235,7 @@ importers:
         specifier: ^20.10.5
         version: 20.19.12
       prisma:
-        specifier: ^5.7.1
+        specifier: ^5.22.0
         version: 5.22.0
       tsx:
         specifier: ^4.7.0
@@ -125,38 +249,113 @@ importers:
       '@bazari/wallet-core':
         specifier: workspace:*
         version: link:../../packages/wallet-core
+      '@noble/curves':
+        specifier: ^1.4.0
+        version: 1.4.0
+      '@noble/hashes':
+        specifier: ^1.4.0
+        version: 1.4.0
       '@polkadot/keyring':
         specifier: 12.6.2
         version: 12.6.2(@polkadot/util-crypto@12.6.2)(@polkadot/util@12.6.2)
+      '@polkadot/networks':
+        specifier: ^13.5.6
+        version: 13.5.6
       '@polkadot/util':
         specifier: 12.6.2
         version: 12.6.2
       '@polkadot/util-crypto':
         specifier: 12.6.2
         version: 12.6.2(@polkadot/util@12.6.2)
+      '@polkadot/wasm-bridge':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6)
+      '@polkadot/wasm-crypto':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6)
+      '@polkadot/wasm-crypto-asmjs':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/wasm-crypto-init':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6)
+      '@polkadot/wasm-crypto-wasm':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/wasm-util':
+        specifier: ^7.5.1
+        version: 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/x-bigint':
+        specifier: ^13.5.6
+        version: 13.5.6
+      '@polkadot/x-global':
+        specifier: ^13.5.6
+        version: 13.5.6
+      '@polkadot/x-randomvalues':
+        specifier: ^13.5.6
+        version: 13.5.6(@polkadot/util@12.6.2)(@polkadot/wasm-util@7.5.1)
+      '@polkadot/x-textdecoder':
+        specifier: ^13.5.6
+        version: 13.5.6
+      '@polkadot/x-textencoder':
+        specifier: ^13.5.6
+        version: 13.5.6
+      '@radix-ui/react-compose-refs':
+        specifier: ^1.1.2
+        version: 1.1.2(@types/react@18.3.24)(react@18.3.1)
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.0.6
         version: 2.1.16(@types/react-dom@18.3.7)(@types/react@18.3.24)(react-dom@18.3.1)(react@18.3.1)
+      '@radix-ui/react-slot':
+        specifier: ^1.2.3
+        version: 1.2.3(@types/react@18.3.24)(react@18.3.1)
       '@radix-ui/react-tabs':
         specifier: ^1.0.4
         version: 1.1.13(@types/react-dom@18.3.7)(@types/react@18.3.24)(react-dom@18.3.1)(react@18.3.1)
+      '@remix-run/router':
+        specifier: ^1.19.2
+        version: 1.19.2
+      '@scure/base':
+        specifier: ^2.0.0
+        version: 2.0.0
+      '@substrate/ss58-registry':
+        specifier: ^1.51.0
+        version: 1.51.0
+      bn.js:
+        specifier: ^5.2.2
+        version: 5.2.2
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
+      cookie:
+        specifier: ^1.0.2
+        version: 1.0.2
+      dijkstrajs:
+        specifier: ^1.0.3
+        version: 1.0.3
       framer-motion:
         specifier: ^10.16.16
         version: 10.18.0(react-dom@18.3.1)(react@18.3.1)
+      html-parse-stringify:
+        specifier: ^3.0.1
+        version: 3.0.1
       i18next:
         specifier: ^23.7.16
         version: 23.16.8
       i18next-browser-languagedetector:
         specifier: ^8.2.0
         version: 8.2.0
+      invariant:
+        specifier: ^2.2.4
+        version: 2.2.4
       lucide-react:
         specifier: ^0.309.0
         version: 0.309.0(react@18.3.1)
       qrcode:
-        specifier: ^1.5.3
+        specifier: ^1.5.4
         version: 1.5.4
       react:
         specifier: ^18.2.0
@@ -164,18 +363,39 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
+      react-fast-compare:
+        specifier: ^3.2.2
+        version: 3.2.2
       react-helmet-async:
         specifier: ^2.0.5
         version: 2.0.5(react@18.3.1)
       react-i18next:
         specifier: ^14.0.0
         version: 14.1.3(i18next@23.16.8)(react-dom@18.3.1)(react@18.3.1)
+      react-router:
+        specifier: ^6.26.2
+        version: 6.26.2(react@18.3.1)
       react-router-dom:
-        specifier: ^6.21.1
-        version: 6.30.1(react-dom@18.3.1)(react@18.3.1)
+        specifier: ^6.26.2
+        version: 6.26.2(react-dom@18.3.1)(react@18.3.1)
+      scheduler:
+        specifier: ^0.26.0
+        version: 0.26.0
+      set-cookie-parser:
+        specifier: ^2.7.1
+        version: 2.7.1
+      shallowequal:
+        specifier: ^1.1.0
+        version: 1.1.0
       tailwind-merge:
         specifier: ^2.2.0
         version: 2.6.0
+      use-sync-external-store:
+        specifier: ^1.5.0
+        version: 1.5.0(react@18.3.1)
+      void-elements:
+        specifier: ^3.1.0
+        version: 3.1.0
       zustand:
         specifier: ^4.4.7
         version: 4.5.7(@types/react@18.3.24)(react@18.3.1)
@@ -1408,17 +1628,23 @@ packages:
       uint8arrays: 5.1.0
     dev: false
 
-  /@noble/curves@1.9.7:
-    resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
-    engines: {node: ^14.21.3 || >=16}
+  /@noble/curves@1.4.0:
+    resolution: {integrity: sha512-p+4cb332SFCrReJkCYe8Xzm0OWi4Jji5jVdIZRL/PmacmDkFNw6MrrV+gGpiPxLHbV+zKFRywUWbaseT+tZRXg==}
     dependencies:
-      '@noble/hashes': 1.8.0
+      '@noble/hashes': 1.4.0
+    dev: false
+
+  /@noble/hashes@1.4.0:
+    resolution: {integrity: sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg==}
+    engines: {node: '>= 16'}
     dev: false
 
   /@noble/hashes@1.8.0:
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+    requiresBuild: true
     dev: false
+    optional: true
 
   /@nodelib/fs.scandir@2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -1611,6 +1837,15 @@ packages:
       tslib: 2.8.1
     dev: false
 
+  /@polkadot/networks@13.5.6:
+    resolution: {integrity: sha512-9HqUIBOHnz9x/ssPb0aOD/7XcU8vGokEYpLoNgexFNIJzqDgrDHXR197iFpkbMqA/+98zagrvYUyPYj1yYs9Jw==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@polkadot/util': 12.6.2
+      '@substrate/ss58-registry': 1.51.0
+      tslib: 2.8.1
+    dev: false
+
   /@polkadot/rpc-augment@10.13.1:
     resolution: {integrity: sha512-iLsWUW4Jcx3DOdVrSHtN0biwxlHuTs4QN2hjJV0gd0jo7W08SXhWabZIf9mDmvUJIbR7Vk+9amzvegjRyIf5+A==}
     engines: {node: '>=18'}
@@ -1734,8 +1969,8 @@ packages:
     peerDependencies:
       '@polkadot/util': 12.6.2
     dependencies:
-      '@noble/curves': 1.9.7
-      '@noble/hashes': 1.8.0
+      '@noble/curves': 1.4.0
+      '@noble/hashes': 1.4.0
       '@polkadot/networks': 12.6.2
       '@polkadot/util': 12.6.2
       '@polkadot/wasm-crypto': 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@12.6.2)
@@ -1772,6 +2007,19 @@ packages:
       tslib: 2.8.1
     dev: false
 
+  /@polkadot/wasm-bridge@7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6):
+    resolution: {integrity: sha512-E+N3CSnX3YaXpAmfIQ+4bTyiAqJQKvVcMaXjkuL8Tp2zYffClWLG5e+RY15Uh+EWfUl9If4y6cLZi3D5NcpAGQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@polkadot/util': 12.6.2
+      '@polkadot/x-randomvalues': '*'
+    dependencies:
+      '@polkadot/util': 12.6.2
+      '@polkadot/wasm-util': 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/x-randomvalues': 13.5.6(@polkadot/util@12.6.2)(@polkadot/wasm-util@7.5.1)
+      tslib: 2.8.1
+    dev: false
+
   /@polkadot/wasm-crypto-asmjs@7.5.1(@polkadot/util@12.6.2):
     resolution: {integrity: sha512-jAg7Uusk+xeHQ+QHEH4c/N3b1kEGBqZb51cWe+yM61kKpQwVGZhNdlWetW6U23t/BMyZArIWMsZqmK/Ij0PHog==}
     engines: {node: '>=18'}
@@ -1795,6 +2043,22 @@ packages:
       '@polkadot/wasm-crypto-wasm': 7.5.1(@polkadot/util@12.6.2)
       '@polkadot/wasm-util': 7.5.1(@polkadot/util@12.6.2)
       '@polkadot/x-randomvalues': 12.6.2(@polkadot/util@12.6.2)(@polkadot/wasm-util@7.5.1)
+      tslib: 2.8.1
+    dev: false
+
+  /@polkadot/wasm-crypto-init@7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6):
+    resolution: {integrity: sha512-Obu4ZEo5jYO6sN31eqCNOXo88rPVkP9TrUOyynuFCnXnXr8V/HlmY/YkAd9F87chZnkTJRlzak17kIWr+i7w3A==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@polkadot/util': 12.6.2
+      '@polkadot/x-randomvalues': '*'
+    dependencies:
+      '@polkadot/util': 12.6.2
+      '@polkadot/wasm-bridge': 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6)
+      '@polkadot/wasm-crypto-asmjs': 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/wasm-crypto-wasm': 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/wasm-util': 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/x-randomvalues': 13.5.6(@polkadot/util@12.6.2)(@polkadot/wasm-util@7.5.1)
       tslib: 2.8.1
     dev: false
 
@@ -1826,6 +2090,23 @@ packages:
       tslib: 2.8.1
     dev: false
 
+  /@polkadot/wasm-crypto@7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6):
+    resolution: {integrity: sha512-acjt4VJ3w19v7b/SIPsV/5k9s6JsragHKPnwoZ0KTfBvAFXwzz80jUzVGxA06SKHacfCUe7vBRlz7M5oRby1Pw==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@polkadot/util': 12.6.2
+      '@polkadot/x-randomvalues': '*'
+    dependencies:
+      '@polkadot/util': 12.6.2
+      '@polkadot/wasm-bridge': 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6)
+      '@polkadot/wasm-crypto-asmjs': 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/wasm-crypto-init': 7.5.1(@polkadot/util@12.6.2)(@polkadot/x-randomvalues@13.5.6)
+      '@polkadot/wasm-crypto-wasm': 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/wasm-util': 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/x-randomvalues': 13.5.6(@polkadot/util@12.6.2)(@polkadot/wasm-util@7.5.1)
+      tslib: 2.8.1
+    dev: false
+
   /@polkadot/wasm-util@7.5.1(@polkadot/util@12.6.2):
     resolution: {integrity: sha512-sbvu71isFhPXpvMVX+EkRnUg/+54Tx7Sf9BEMqxxoPj7cG1I/MKeDEwbQz6MaU4gm7xJqvEWCAemLFcXfHQ/2A==}
     engines: {node: '>=18'}
@@ -1841,6 +2122,14 @@ packages:
     engines: {node: '>=18'}
     dependencies:
       '@polkadot/x-global': 12.6.2
+      tslib: 2.8.1
+    dev: false
+
+  /@polkadot/x-bigint@13.5.6:
+    resolution: {integrity: sha512-HpqZJ9ud94iK/+0Ofacw7QdtvzFp6SucBBml4XwWZTWoLaLOGDsO7FoWE7yCuwPbX8nLgIM6YmQBeUoZmBtVqQ==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@polkadot/x-global': 13.5.6
       tslib: 2.8.1
     dev: false
 
@@ -1860,6 +2149,13 @@ packages:
       tslib: 2.8.1
     dev: false
 
+  /@polkadot/x-global@13.5.6:
+    resolution: {integrity: sha512-iw97n0Bnl2284WgAK732LYR4DW6w5+COfBfHzkhiHqs5xwPEwWMgWGrf2hM8WAQqNIz6Ni8w/jagucPyQBur3Q==}
+    engines: {node: '>=18'}
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
   /@polkadot/x-randomvalues@12.6.2(@polkadot/util@12.6.2)(@polkadot/wasm-util@7.5.1):
     resolution: {integrity: sha512-Vr8uG7rH2IcNJwtyf5ebdODMcr0XjoCpUbI91Zv6AlKVYOGKZlKLYJHIwpTaKKB+7KPWyQrk4Mlym/rS7v9feg==}
     engines: {node: '>=18'}
@@ -1873,6 +2169,19 @@ packages:
       tslib: 2.8.1
     dev: false
 
+  /@polkadot/x-randomvalues@13.5.6(@polkadot/util@12.6.2)(@polkadot/wasm-util@7.5.1):
+    resolution: {integrity: sha512-w1F9G7FxrJ7+hGC8bh9/VpPH4KN8xmyzgiQdR7+rVB2V8KsKQBQidG69pj5Kwsh3oODOz0yQYsTG6Rm6TAJbGA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@polkadot/util': 12.6.2
+      '@polkadot/wasm-util': '*'
+    dependencies:
+      '@polkadot/util': 12.6.2
+      '@polkadot/wasm-util': 7.5.1(@polkadot/util@12.6.2)
+      '@polkadot/x-global': 13.5.6
+      tslib: 2.8.1
+    dev: false
+
   /@polkadot/x-textdecoder@12.6.2:
     resolution: {integrity: sha512-M1Bir7tYvNappfpFWXOJcnxUhBUFWkUFIdJSyH0zs5LmFtFdbKAeiDXxSp2Swp5ddOZdZgPac294/o2TnQKN1w==}
     engines: {node: '>=18'}
@@ -1881,11 +2190,27 @@ packages:
       tslib: 2.8.1
     dev: false
 
+  /@polkadot/x-textdecoder@13.5.6:
+    resolution: {integrity: sha512-jTGeYCxFh89KRrP7bNj1CPqKO36Onsi0iA6A+5YtRS5wjdQU+/OFM/EHLTP2nvkvZo/tOkOewMR9sausisUvVQ==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@polkadot/x-global': 13.5.6
+      tslib: 2.8.1
+    dev: false
+
   /@polkadot/x-textencoder@12.6.2:
     resolution: {integrity: sha512-4N+3UVCpI489tUJ6cv3uf0PjOHvgGp9Dl+SZRLgFGt9mvxnvpW/7+XBADRMtlG4xi5gaRK7bgl5bmY6OMDsNdw==}
     engines: {node: '>=18'}
     dependencies:
       '@polkadot/x-global': 12.6.2
+      tslib: 2.8.1
+    dev: false
+
+  /@polkadot/x-textencoder@13.5.6:
+    resolution: {integrity: sha512-iVwz9+OrYCEF9QbNfr9M206mmWvY/AhDmGPfAIeTR4fRgKGVYqcP8RIF8iu/x0MVQWqiVO3vlhlUk7MfrmAnoQ==}
+    engines: {node: '>=18'}
+    dependencies:
+      '@polkadot/x-global': 13.5.6
       tslib: 2.8.1
     dev: false
 
@@ -2467,8 +2792,8 @@ packages:
     resolution: {integrity: sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==}
     dev: false
 
-  /@remix-run/router@1.23.0:
-    resolution: {integrity: sha512-O3rHJzAQKamUz1fvE0Qaw0xSFqsA/yafi2iqeE0pvdFtCO1viYx8QL6f3Ln/aCCTLxs68SLf0KPM9eSeM8yBnA==}
+  /@remix-run/router@1.19.2:
+    resolution: {integrity: sha512-baiMx18+IMuD1yyvOGaHM9QrVUPGGG0jC+z+IPHnRJWUAUvaKuWKyE8gjDj2rzv3sz9zOGoRSPgeBVHRhZnBlA==}
     engines: {node: '>=14.0.0'}
     dev: false
 
@@ -2656,6 +2981,10 @@ packages:
 
   /@scure/base@1.2.6:
     resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
+    dev: false
+
+  /@scure/base@2.0.0:
+    resolution: {integrity: sha512-3E1kpuZginKkek01ovG8krQ0Z44E3DHPjc5S2rjJw9lZn3KSQOs8S7wqikF/AH7iRanHypj85uGyxk0XAyC37w==}
     dev: false
 
   /@substrate/connect-extension-protocol@2.2.2:
@@ -3542,6 +3871,12 @@ packages:
     engines: {node: '>=10'}
     dev: false
 
+  /class-variance-authority@0.7.1:
+    resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
+    dependencies:
+      clsx: 2.1.1
+    dev: false
+
   /cliui@6.0.0:
     resolution: {integrity: sha512-t6wbgtoCXvAzst7QgXxJYqPt0usEfbgQdftEPbLL/cvv6HPE5VgvqCuAIDR0NgU52ds6rFwqrgakNLrHEjCbrQ==}
     dependencies:
@@ -3613,6 +3948,11 @@ packages:
   /cookie@0.7.2:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
+    dev: false
+
+  /cookie@1.0.2:
+    resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
+    engines: {node: '>=18'}
     dev: false
 
   /cross-spawn@7.0.6:
@@ -6350,26 +6690,26 @@ packages:
       use-sidecar: 1.1.3(@types/react@18.3.24)(react@18.3.1)
     dev: false
 
-  /react-router-dom@6.30.1(react-dom@18.3.1)(react@18.3.1):
-    resolution: {integrity: sha512-llKsgOkZdbPU1Eg3zK8lCn+sjD9wMRZZPuzmdWWX5SUs8OFkN5HnFVC0u5KMeMaC9aoancFI/KoLuKPqN+hxHw==}
+  /react-router-dom@6.26.2(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-z7YkaEW0Dy35T3/QKPYB1LjMK2R1fxnHO8kWpUMTBdfVzZrWOiY9a7CtN8HqdWtDUWd5FY6Dl8HFsqVwH4uOtQ==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
       react-dom: '>=16.8'
     dependencies:
-      '@remix-run/router': 1.23.0
+      '@remix-run/router': 1.19.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-router: 6.30.1(react@18.3.1)
+      react-router: 6.26.2(react@18.3.1)
     dev: false
 
-  /react-router@6.30.1(react@18.3.1):
-    resolution: {integrity: sha512-X1m21aEmxGXqENEPG3T6u0Th7g0aS4ZmoNynhbs+Cn+q+QGTLt+d5IQ2bHAXKzKcxGJjxACpVbnYQSCRcfxHlQ==}
+  /react-router@6.26.2(react@18.3.1):
+    resolution: {integrity: sha512-tvN1iuT03kHgOFnLPfLJ8V95eijteveqdOSk+srqfePtQvqCExB8eHOYnlilbOcyJyKnYkr1vJvf7YqotAJu1A==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
     dependencies:
-      '@remix-run/router': 1.23.0
+      '@remix-run/router': 1.19.2
       react: 18.3.1
     dev: false
 
@@ -6554,6 +6894,13 @@ packages:
     dependencies:
       glob: 7.2.3
 
+  /rimraf@5.0.10:
+    resolution: {integrity: sha512-l0OE8wL34P4nJH/H2ffoaniAokM2qSmrtXHmlpvYr5AVVX8msAyW0l8NVJFDxlSK4u3Uh/f41cQheDVdnYijwQ==}
+    hasBin: true
+    dependencies:
+      glob: 10.4.5
+    dev: true
+
   /rollup@4.50.0:
     resolution: {integrity: sha512-/Zl4D8zPifNmyGzJS+3kVoyXeDeT/GrsJM94sACNg9RtUE0hrHa1bNPtRSrfHTMH5HjRzce6K7rlTh3Khiw+pw==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
@@ -6654,6 +7001,10 @@ packages:
     resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
     dependencies:
       loose-envify: 1.4.0
+    dev: false
+
+  /scheduler@0.26.0:
+    resolution: {integrity: sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA==}
     dev: false
 
   /secure-json-parse@2.7.0:

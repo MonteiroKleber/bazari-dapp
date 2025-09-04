@@ -11,6 +11,7 @@ export default defineConfig({
     wasm()
   ],
   resolve: {
+    preserveSymlinks: true,
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@components': path.resolve(__dirname, './src/components'),
@@ -30,6 +31,19 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
+
+    include: [
+      // polkadot / noble (subpaths que aparecem nos erros)
+      '@polkadot/util-crypto',
+      '@polkadot/wasm-crypto',
+      '@polkadot/wasm-crypto-asmjs',
+      '@polkadot/wasm-crypto-init',
+      '@noble/hashes',
+      '@noble/hashes/blake2b',
+      '@noble/hashes/sha256',
+      '@noble/hashes/sha512'
+    ],
+
     esbuildOptions: {
       target: 'esnext'
     },

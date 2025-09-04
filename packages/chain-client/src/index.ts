@@ -1,462 +1,236 @@
 // packages/chain-client/src/index.ts
-import { ApiPromise, WsProvider, Keyring } from '@polkadot/api'
-import { KeyringPair$Json } from '@polkadot/keyring/types'
+import { ApiPromise, WsProvider } from '@polkadot/api'
+import { Keyring } from '@polkadot/keyring'
+import type { KeyringPair } from '@polkadot/keyring/types'
 import { EventEmitter } from 'eventemitter3'
 import BN from 'bn.js'
 import type { SubmittableExtrinsic } from '@polkadot/api/types'
 import type { ISubmittableResult } from '@polkadot/types/types'
 
-// Types
+// ---------- Types ----------
 export interface ChainClientConfig {
   wsEndpoint?: string
-  types?: Record<string, any>
-  rpc?: Record<string, any>
+  types?: Record<string, unknown>
+  rpc?: Record<string, unknown>
+  autoConnect?: boolean
 }
 
 export interface AccountBalance {
-  free: BN
-  reserved: BN
-  frozen: BN
+  free: bigint
+  reserved: bigint
+  miscFrozen: bigint
+  feeFrozen: bigint
+  total: bigint
 }
 
-export interface TransferOptions {
-  from: KeyringPair
-  to: string
-  amount: string | BN
-  token?: 'BZR' | 'LIVO'
-}
-
-export interface DaoInfo {
-  id: string
-  founder: string
+export interface ChainInfo {
   name: string
-  description: string
-  ipfsHash: string
-  treasuryAddress: string
-  memberCount: number
-  proposalCount: number
-  created: number
+  version: string
+  chainType?: string
+  decimals: number
+  tokenSymbol: string
 }
 
-export interface ProposalInfo {
-  id: number
-  daoId: string
-  proposer: string
-  title: string
-  description: string
-  ipfsHash: string
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Executed'
-  votesFor: BN
-  votesAgainst: BN
-  created: number
-  deadline: number
-}
+type Unsub = () => void
 
-export interface MarketplaceListing {
-  id: string
-  daoId: string
-  seller: string
-  title: string
-  description: string
-  price: BN
-  ipfsHash: string
-  category: string
-  status: 'Active' | 'Sold' | 'Cancelled'
-  created: number
-}
-
-// Re-export KeyringPair from the correct location
-import Keyring from '@polkadot/keyring'
-export type KeyringPair = ReturnType<InstanceType<typeof Keyring>['addFromUri']>
-
+// ---------- ChainClient ----------
 export class ChainClient extends EventEmitter {
   private api: ApiPromise | null = null
-  private wsProvider: WsProvider | null = null
-  private keyring: Keyring | null = null
-  private config: ChainClientConfig
+  private provider: WsProvider | null = null
 
-  constructor(config: ChainClientConfig = {}) {
+  private unsubNewHeads?: Unsub
+  private unsubFinalizedHeads?: Unsub
+
+  private endpoint: string
+  private types?: Record<string, unknown>
+  private rpc?: Record<string, unknown>
+
+  constructor (config: ChainClientConfig = {}) {
     super()
-    this.config = {
-      wsEndpoint: config.wsEndpoint || 'ws://localhost:9944',
-      types: config.types || {},
-      rpc: config.rpc || {},
+    this.endpoint = config.wsEndpoint ?? 'ws://127.0.0.1:9944'
+    this.types = config.types
+    this.rpc = config.rpc
+
+    if (config.autoConnect) {
+      void this.connect().catch((err) => this.emit('error', err))
     }
   }
 
-  // Connection management
-  async connect(): Promise<void> {
-    try {
-      this.wsProvider = new WsProvider(this.config.wsEndpoint)
-      
-      this.api = await ApiPromise.create({
-        provider: this.wsProvider,
-        types: this.config.types,
-        rpc: this.config.rpc,
-      })
+  // ------------- Connection -------------
+  async connect (): Promise<void> {
+    if (this.api?.isConnected) return
 
-      await this.api.isReady
+    this.provider = new WsProvider(this.endpoint)
+    this.api = await ApiPromise.create({
+      provider: this.provider,
+      types: this.types as any,
+      rpc: this.rpc as any
+    })
+    await this.api.isReady
 
-      // Initialize keyring
-      this.keyring = new Keyring({ type: 'sr25519', ss58Format: 42 })
+    this.emit('connected')
 
-      // Listen to connected/disconnected events
-      this.api.on('connected', () => {
-        console.log('Connected to chain')
-        this.emit('connected')
-      })
-
-      this.api.on('disconnected', () => {
-        console.log('Disconnected from chain')
-        this.emit('disconnected')
-      })
-
-      this.api.on('ready', () => {
-        console.log('API ready')
-        this.emit('ready')
-      })
-
-      this.api.on('error', (error: Error) => {
-        console.error('API error:', error)
-        this.emit('error', error)
-      })
-
-      console.log('Chain client connected successfully')
-      this.emit('connected')
-    } catch (error) {
-      console.error('Failed to connect to chain:', error)
-      throw error
-    }
+    this.api.on('disconnected', () => this.emit('disconnected'))
+    this.api.on('error', (e) => this.emit('error', e))
   }
 
-  async disconnect(): Promise<void> {
+  async disconnect (): Promise<void> {
+    if (this.unsubNewHeads) { this.unsubNewHeads(); this.unsubNewHeads = undefined }
+    if (this.unsubFinalizedHeads) { this.unsubFinalizedHeads(); this.unsubFinalizedHeads = undefined }
     if (this.api) {
       await this.api.disconnect()
       this.api = null
-      this.wsProvider = null
-      this.keyring = null
+      this.provider = null
       this.emit('disconnected')
     }
   }
 
-  isConnected(): boolean {
-    return this.api !== null && this.api.isConnected
+  isConnected (): boolean {
+    return !!this.api && this.api.isConnected
   }
 
-  // Chain information
-  async getChainInfo(): Promise<any> {
+  getApi (): ApiPromise {
     if (!this.api) throw new Error('API not connected')
-    
-    const [chain, nodeName, nodeVersion, chainType] = await Promise.all([
-      this.api.rpc.system.chain(),
-      this.api.rpc.system.name(),
-      this.api.rpc.system.version(),
-      this.api.rpc.system.chainType ? this.api.rpc.system.chainType() : Promise.resolve(null),
+    return this.api
+  }
+
+  // ------------- Chain info -------------
+  async getChainInfo (): Promise<ChainInfo> {
+    const api = this.getApi()
+    const [chain, nodeName, nodeVersion] = await Promise.all([
+      api.rpc.system.chain(),
+      api.rpc.system.name(),
+      api.rpc.system.version()
     ])
 
+    const decimals = api.registry.chainDecimals?.[0] ?? 12
+    const tokenSymbol = api.registry.chainTokens?.[0] ?? 'UNIT'
+
     return {
-      chain: chain.toString(),
-      nodeName: nodeName.toString(),
-      nodeVersion: nodeVersion.toString(),
-      chainType: chainType ? chainType.toString() : 'Development',
+      name: chain.toString(),
+      version: `${nodeName.toString()} ${nodeVersion.toString()}`,
+      decimals,
+      tokenSymbol
     }
   }
 
-  async getBlock(hash?: string): Promise<any> {
-    if (!this.api) throw new Error('API not connected')
-    
-    const signedBlock = hash
-      ? await this.api.rpc.chain.getBlock(hash)
-      : await this.api.rpc.chain.getBlock()
-      
-    return signedBlock.toJSON()
+  // ------------- Blocks -------------
+  async getBlockNumber (): Promise<number> {
+    const api = this.getApi()
+    const bn = await api.query.system.number()
+    return Number(bn.toString())
   }
 
-  async getBlockNumber(): Promise<number> {
-    if (!this.api) throw new Error('API not connected')
-    
-    const blockNumber = await this.api.query.system.number()
-    return blockNumber.toNumber()
+  async getBlockHash (blockNumber?: number): Promise<string> {
+    const api = this.getApi()
+    const hash = blockNumber !== undefined
+      ? await api.rpc.chain.getBlockHash(blockNumber)
+      : await api.rpc.chain.getBlockHash()
+    return hash.toString()
   }
 
-  async getBlockHash(blockNumber?: number): Promise<string> {
-    if (!this.api) throw new Error('API not connected')
-    
-    const blockHash = blockNumber !== undefined
-      ? await this.api.rpc.chain.getBlockHash(blockNumber)
-      : await this.api.rpc.chain.getBlockHash()
-      
-    return blockHash.toString()
-  }
+  // ------------- Balances -------------
+  async getAccountBalance (address: string): Promise<AccountBalance> {
+    const api = this.getApi()
 
-  // Event subscriptions
-  subscribeNewHeads(callback: (header: any) => void): () => void {
-    if (!this.api) throw new Error('API not connected')
-    
-    let unsubscribe: (() => void) | null = null
-    
-    this.api.rpc.chain.subscribeNewHeads((header) => {
-      callback(header.toJSON())
-    }).then(unsub => {
-      unsubscribe = unsub
-    })
-    
-    return () => {
-      if (unsubscribe) unsubscribe()
-    }
-  }
-
-  subscribeEvents(callback: (events: any[]) => void): () => void {
-    if (!this.api) throw new Error('API not connected')
-    
-    let unsubscribe: (() => void) | null = null
-    
-    this.api.query.system.events((events: any) => {
-      const decoded = events.map((record: any) => {
-        const { event, phase } = record
-        const types = event.typeDef
-
-        return {
-          phase: phase.toString(),
-          section: event.section,
-          method: event.method,
-          data: event.data.toString(),
-          documentation: event.meta.docs.map((d: any) => d.toString()),
-        }
-      })
-      
-      callback(decoded)
-    }).then(unsub => {
-      unsubscribe = unsub
-    })
-    
-    return () => {
-      if (unsubscribe) unsubscribe()
-    }
-  }
-
-  // Keyring management
-  addAccountFromSeed(seed: string, meta: Record<string, any> = {}): KeyringPair {
-    if (!this.keyring) throw new Error('Keyring not initialized')
-    return this.keyring.addFromUri(seed, meta)
-  }
-
-  addAccountFromJson(json: KeyringPair$Json, password?: string): KeyringPair {
-    if (!this.keyring) throw new Error('Keyring not initialized')
-    const pair = this.keyring.addFromJson(json)
-    if (password) {
-      pair.unlock(password)
-    }
-    return pair
-  }
-
-  getAccounts(): KeyringPair[] {
-    if (!this.keyring) throw new Error('Keyring not initialized')
-    return this.keyring.getPairs()
-  }
-
-  // Balance queries
-  async getBalance(address: string): Promise<AccountBalance> {
-    if (!this.api) throw new Error('API not connected')
-    
-    const account = await this.api.query.system.account(address)
-    const data = account as any
-    return {
-      free: new BN(data.data.free.toString()),
-      reserved: new BN(data.data.reserved.toString()),
-      frozen: new BN(data.data.frozen?.toString() || '0')
-    }
-  }
-
-  async getLivoBalance(address: string): Promise<BN> {
-    if (!this.api) throw new Error('API not connected')
-    
-    // Query LIVO balance from cashback pallet
-    const balance = await (this.api.query as any).cashback?.balances(address)
-    return new BN(balance?.toString() || '0')
-  }
-
-  // Transfers
-  async transfer(options: TransferOptions): Promise<string> {
-    if (!this.api) throw new Error('API not connected')
-
-    const { from, to, amount, token = 'BZR' } = options
-    const amountBN = typeof amount === 'string' ? new BN(amount) : amount
-
-    return new Promise((resolve, reject) => {
-      let unsub: (() => void) | null = null
-      let tx: SubmittableExtrinsic<'promise'>
-
-      if (token === 'BZR') {
-        tx = this.api!.tx.balances.transferKeepAlive(to, amountBN)
-      } else if (token === 'LIVO') {
-        tx = (this.api!.tx as any).cashback?.transfer(to, amountBN)
-        if (!tx) {
-          reject(new Error('LIVO transfer not available'))
-          return
-        }
-      } else {
-        reject(new Error(`Unsupported token: ${token}`))
-        return
+    // Tipagem mínima usada (evita 'Codec' no dts)
+    type AccountInfoLike = {
+      data: {
+        free: unknown
+        reserved: unknown
+        miscFrozen?: unknown
+        feeFrozen?: unknown
       }
+    }
 
-      tx.signAndSend(from, { nonce: -1 }, (result: ISubmittableResult) => {
-        const { status, dispatchError } = result
-        
-        if (status.isInBlock) {
-          console.log(`Transaction included in block ${status.asInBlock}`)
-        }
+    const account = (await api.query.system.account(address)) as unknown as AccountInfoLike
+    const toBig = (x: unknown) => BigInt((x as any)?.toString?.() ?? '0')
 
-        if (status.isFinalized) {
-          console.log(`Transaction finalized in block ${status.asFinalized}`)
-          
-          if (dispatchError) {
-            let errorMessage = 'Transaction failed'
-            
-            if (dispatchError.isModule) {
-              const decoded = this.api!.registry.findMetaError(dispatchError.asModule)
-              errorMessage = `${decoded.section}.${decoded.name}: ${decoded.docs.join(' ')}`
-            } else {
-              errorMessage = dispatchError.toString()
-            }
-            
-            reject(new Error(errorMessage))
-          } else {
-            resolve(status.asFinalized.toString())
-          }
+    const free = toBig(account.data.free)
+    const reserved = toBig(account.data.reserved)
+    const miscFrozen = toBig(account.data.miscFrozen)
+    const feeFrozen = toBig(account.data.feeFrozen)
+    const total = free + reserved
 
-          if (unsub) unsub()
-        }
-      }).then(unsubscribe => {
-        unsub = unsubscribe
-      }).catch(reject)
-    })
+    return { free, reserved, miscFrozen, feeFrozen, total }
   }
 
-  // DAO operations
-  async createDao(
-    creator: KeyringPair,
-    name: string,
-    description: string,
-    ipfsHash: string
+  // ------------- Subscriptions -------------
+  async subscribeNewHeads (cb: (header: any) => void): Promise<Unsub> {
+    const api = this.getApi()
+    const unsub = await api.rpc.chain.subscribeNewHeads((lastHeader) => {
+      try {
+        cb(lastHeader)
+        this.emit('newHead', lastHeader)
+      } catch (e) {
+        this.emit('error', e)
+      }
+    })
+    this.unsubNewHeads = unsub
+    return unsub
+  }
+
+  async subscribeFinalizedHeads (cb: (header: any) => void): Promise<Unsub> {
+    const api = this.getApi()
+    const unsub = await api.rpc.chain.subscribeFinalizedHeads((header) => {
+      try {
+        cb(header)
+        this.emit('finalizedHead', header)
+      } catch (e) {
+        this.emit('error', e)
+      }
+    })
+    this.unsubFinalizedHeads = unsub
+    return unsub
+  }
+
+  // ------------- Extrinsics -------------
+  async signAndSend (
+    extrinsic: SubmittableExtrinsic<'promise', ISubmittableResult>,
+    signer: KeyringPair,
+    statusCb?: (result: ISubmittableResult) => void
   ): Promise<string> {
-    if (!this.api) throw new Error('API not connected')
+    this.getApi() // assegura conectado
 
-    return new Promise((resolve, reject) => {
-      let unsub: (() => void) | null = null
+    return new Promise<string>(async (resolve, reject) => {
+      try {
+        const unsubscribe = await extrinsic.signAndSend(signer, (result) => {
+          statusCb?.(result)
+          this.emit('txStatus', result)
 
-      const tx = (this.api!.tx as any).daoRegistry?.createDao(name, description, ipfsHash)
-      if (!tx) {
-        reject(new Error('DAO registry not available'))
-        return
-      }
-
-      tx.signAndSend(creator, { nonce: -1 }, (result: ISubmittableResult) => {
-        const { status, dispatchError } = result
-
-        if (status.isFinalized) {
-          if (dispatchError) {
-            let errorMessage = 'Failed to create DAO'
-            if (dispatchError.isModule) {
-              const decoded = this.api!.registry.findMetaError(dispatchError.asModule)
-              errorMessage = `${decoded.section}.${decoded.name}: ${decoded.docs.join(' ')}`
-            }
-            reject(new Error(errorMessage))
-          } else {
-            resolve(status.asFinalized.toString())
+          if (result.status.isFinalized) {
+            const blockHash = result.status.asFinalized.toString()
+            this.emit('txFinalized', { blockHash, result })
+            unsubscribe()
+            resolve(blockHash)
+          } else if ((result as any).isError) {
+            unsubscribe()
+            reject(new Error('Extrinsic failed'))
           }
-          if (unsub) unsub()
-        }
-      }).then(unsubscribe => {
-        unsub = unsubscribe
-      }).catch(reject)
+        })
+      } catch (err) {
+        reject(err)
+      }
     })
   }
 
-  // Marketplace operations
-  async createListing(
-    seller: KeyringPair,
-    daoId: string,
-    title: string,
-    description: string,
-    price: string | BN,
-    category: string,
-    ipfsHash: string
-  ): Promise<string> {
-    if (!this.api) throw new Error('API not connected')
+  // Utilitário para formatar quantidade em BN baseado em decimais
+  toChainUnits (value: string | number, decimals?: number): BN {
+    const api = this.getApi()
+    const d = decimals ?? (api.registry.chainDecimals?.[0] ?? 12)
 
-    const priceBN = typeof price === 'string' ? new BN(price) : price
+    const [whole, frac = ''] = String(value).split('.')
+    const fracPadded = frac.padEnd(d, '0').slice(0, d)
 
-    return new Promise((resolve, reject) => {
-      let unsub: (() => void) | null = null
+    const base = new BN(10).pow(new BN(d))
+    const wholeBn = new BN(whole).mul(base)
+    const fracBn = new BN(fracPadded || '0')
 
-      const tx = (this.api!.tx as any).marketplace?.createListing(
-        daoId,
-        title,
-        description,
-        priceBN,
-        category,
-        ipfsHash
-      )
-
-      if (!tx) {
-        reject(new Error('Marketplace not available'))
-        return
-      }
-
-      tx.signAndSend(seller, { nonce: -1 }, (result: ISubmittableResult) => {
-        const { status, dispatchError } = result
-
-        if (status.isFinalized) {
-          if (dispatchError) {
-            let errorMessage = 'Failed to create listing'
-            if (dispatchError.isModule) {
-              const decoded = this.api!.registry.findMetaError(dispatchError.asModule)
-              errorMessage = `${decoded.section}.${decoded.name}`
-            }
-            reject(new Error(errorMessage))
-          } else {
-            resolve(status.asFinalized.toString())
-          }
-          if (unsub) unsub()
-        }
-      }).then(unsubscribe => {
-        unsub = unsubscribe
-      }).catch(reject)
-    })
-  }
-
-  // Utility functions
-  formatBalance(balance: BN, decimals: number = 12): string {
-    const divisor = new BN(10).pow(new BN(decimals))
-    const beforeDecimal = balance.div(divisor).toString()
-    const afterDecimal = balance.mod(divisor).toString().padStart(decimals, '0')
-    
-    // Remove trailing zeros
-    const trimmed = afterDecimal.replace(/0+$/, '')
-    
-    if (trimmed.length === 0) {
-      return beforeDecimal
-    }
-    
-    return `${beforeDecimal}.${trimmed}`
-  }
-
-  parseAmount(amount: string, decimals: number = 12): BN {
-    const parts = amount.split('.')
-    const wholePart = parts[0] || '0'
-    const decimalPart = (parts[1] || '').padEnd(decimals, '0').slice(0, decimals)
-    
-    const wholeValue = new BN(wholePart).mul(new BN(10).pow(new BN(decimals)))
-    const decimalValue = new BN(decimalPart)
-    
-    return wholeValue.add(decimalValue)
+    return wholeBn.add(fracBn)
   }
 }
 
-// Export utilities
-export { BN } from 'bn.js'
-export { mnemonicGenerate, mnemonicValidate } from '@polkadot/util-crypto'
-
-// Default export
-export default ChainClient
+// ---------- Re-exports ----------
+export { default as BN } from 'bn.js'
+export { mnemonicGenerate, mnemonicValidate, mnemonicToMiniSecret } from '@polkadot/util-crypto'
+export { Keyring }

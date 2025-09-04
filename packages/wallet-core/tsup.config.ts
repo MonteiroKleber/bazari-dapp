@@ -10,11 +10,14 @@ export default defineConfig({
   treeshake: true,
   minify: false,
   external: [
-    '@bazari/chain-client'
-  ],
-  noExternal: [
+    '@polkadot/api',
     '@polkadot/keyring',
     '@polkadot/util',
-    '@polkadot/util-crypto'
+    '@polkadot/util-crypto',
+    'bip39',
+    'zod',
+    'qrcode',
+    'idb'
   ]
 })
+

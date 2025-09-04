@@ -1,5 +1,6 @@
 import fp from 'fastify-plugin'
-import { ChainClient, Keyring } from '@bazari/chain-client'
+import { ChainClient } from '@bazari/chain-client'
+import { Keyring } from '@polkadot/keyring'
 
 declare module 'fastify' {
   interface FastifyInstance {
