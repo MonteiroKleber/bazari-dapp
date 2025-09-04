@@ -1,15 +1,15 @@
 import fp from 'fastify-plugin'
-import { BazariChainClient, Keyring } from '@bazari/chain-client'
+import { ChainClient, Keyring } from '@bazari/chain-client'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    chain: BazariChainClient
+    chain: ChainClient
     keyring?: Keyring
   }
 }
 
 export default fp(async (server) => {
-  const chainClient = new BazariChainClient({
+  const chainClient = new ChainClient({
     endpoint: process.env.CHAIN_ENDPOINT || 'ws://localhost:9944',
   })
 

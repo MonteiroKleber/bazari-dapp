@@ -8,7 +8,7 @@ import multipart from '@fastify/multipart'
 import websocket from '@fastify/websocket'
 import { PrismaClient } from '@prisma/client'
 import { getChainClient } from '@bazari/chain-client'
-import Redis from 'ioredis'
+// import Redis from 'ioredis'
 import pino from 'pino'
 
 // Import routes
@@ -22,7 +22,7 @@ import governanceRoutes from './routes/governance'
 
 // Import plugins
 import prismaPlugin from './plugins/prisma'
-import redisPlugin from './plugins/redis'
+// import redisPlugin from './plugins/redis'
 import chainPlugin from './plugins/chain'
 import ipfsPlugin from './plugins/ipfs'
 import authPlugin from './plugins/auth'
@@ -68,7 +68,7 @@ async function registerPlugins() {
   await server.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
-    redis: new Redis(process.env.REDIS_URL || 'redis://localhost:6379'),
+    // redis: new Redis(process.env.REDIS_URL || 'redis://localhost:6379'),
   })
 
   // JWT
@@ -92,7 +92,7 @@ async function registerPlugins() {
 
   // Custom plugins
   await server.register(prismaPlugin)
-  await server.register(redisPlugin)
+  // await server.register(redisPlugin)
   await server.register(chainPlugin)
   await server.register(ipfsPlugin)
   await server.register(authPlugin)
