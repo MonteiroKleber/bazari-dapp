@@ -1,19 +1,16 @@
-// apps/web/vite.config.ts
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
-import wasm from 'vite-plugin-wasm'
-import topLevelAwait from 'vite-plugin-top-level-await'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    wasm(),
-    topLevelAwait(),
+    // Adicionar polyfills para Node.js (necessário para Polkadot.js)
     nodePolyfills({
-      include: ['buffer', 'crypto', 'util', 'stream'],
+      // Se necessário, especifique quais polyfills usar
+      include: ['buffer', 'crypto', 'stream', 'util', 'process'],
       globals: {
         Buffer: true,
         global: true,
@@ -22,69 +19,53 @@ export default defineConfig({
     })
   ],
   resolve: {
-    preserveSymlinks: true,
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@components': path.resolve(__dirname, './src/components'),
       '@pages': path.resolve(__dirname, './src/pages'),
       '@hooks': path.resolve(__dirname, './src/hooks'),
-      '@lib': path.resolve(__dirname, './src/lib'),
       '@store': path.resolve(__dirname, './src/store'),
+      '@lib': path.resolve(__dirname, './src/lib'),
+      '@types': path.resolve(__dirname, './src/types'),
       '@assets': path.resolve(__dirname, './src/assets'),
       '@locales': path.resolve(__dirname, './src/locales'),
-      // Fix para bn.js
-      'bn.js': path.resolve(__dirname, '../../node_modules/bn.js/lib/bn.js')
-    }
-  },
-  server: {
-    port: 5173,
-    host: true,
-    fs: {
-      allow: ['..']
     }
   },
   optimizeDeps: {
+    // Incluir explicitamente as dependências Polkadot
     include: [
-      'bn.js',
+      '@polkadot/keyring',
       '@polkadot/util',
       '@polkadot/util-crypto',
-      '@polkadot/keyring',
       '@polkadot/wasm-crypto',
-      '@polkadot/wasm-crypto-asmjs',
-      '@polkadot/wasm-crypto-init',
-      '@polkadot/wasm-crypto-wasm',
-      '@polkadot/wasm-util',
-      '@polkadot/x-bigint',
-      '@polkadot/x-global',
-      '@polkadot/x-randomvalues',
-      '@polkadot/x-textdecoder',
-      '@polkadot/x-textencoder',
-      '@noble/hashes',
-      '@noble/curves',
-      '@scure/base'
+      '@polkadot/networks'
     ],
+    // Forçar ESBuild a processar esses módulos
     esbuildOptions: {
-      target: 'esnext',
-      define: {
-        global: 'globalThis'
-      }
+      target: 'es2020'
     }
   },
   build: {
-    target: 'esnext',
-    modulePreload: {
-      polyfill: true
-    },
-    commonjsOptions: {
-      transformMixedEsModules: true,
-      include: [/node_modules/]
-    },
+    target: 'es2020',
     rollupOptions: {
-      external: []
+      output: {
+        manualChunks: {
+          'polkadot': [
+            '@polkadot/keyring',
+            '@polkadot/util',
+            '@polkadot/util-crypto'
+          ]
+        }
+      }
     }
   },
   define: {
+    // Definir variáveis globais se necessário
     'process.env': {},
     global: 'globalThis'
+  },
+  server: {
+    port: 5173,
+    host: true
   }
 })

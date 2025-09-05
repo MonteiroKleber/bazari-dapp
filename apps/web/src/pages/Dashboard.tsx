@@ -1,32 +1,46 @@
+// Arquivo: apps/web/src/pages/Dashboard.tsx
+// Dashboard com integração real com a blockchain
+
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import {
-  Wallet,
-  Send,
-  LogOut,
-  Copy,
-  Shield,
-  TrendingUp,
-  Activity,
-  User,
-  Bell,
+import { useTranslation } from 'react-i18next'
+import { 
+  Wallet, 
+  Send, 
+  ArrowUpRight, 
+  ArrowDownLeft, 
+  LogOut, 
+  Copy, 
   Settings,
-  CreditCard,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Loader2,
+  Bell,
+  Grid,
+  TrendingUp,
   Users,
-  ArrowUpDown
+  RefreshCw,
+  Loader2
 } from 'lucide-react'
 import { Button } from '@components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@components/ui/card'
 import { useAuthStore } from '@store/auth'
 import { useWalletStore } from '@store/wallet'
-import { SendModal } from '@components/wallet/SendModal'
 import { useCopyToClipboard } from '@hooks/useCopyToClipboard'
-import { formatCurrency, truncateAddress } from '@lib/utils'
+import { cn } from '@lib/utils'
+
+// Componente de Modal de Envio (será implementado depois)
+const SendModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  if (!isOpen) return null
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-bazari-black border border-bazari-red/20 rounded-2xl p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+        <h2 className="text-xl font-bold text-bazari-sand mb-4">Enviar Tokens</h2>
+        <p className="text-bazari-sand/60">Funcionalidade em desenvolvimento...</p>
+        <Button className="mt-4" onClick={onClose}>Fechar</Button>
+      </div>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const { t } = useTranslation()
@@ -35,23 +49,85 @@ export default function Dashboard() {
   
   const { user, logout } = useAuthStore()
   const { 
-    activeAccount,
-    balances,
-    transactions,
-    isLoading,
-    fetchBalances,
-    fetchTransactions
+    activeAccount, 
+    balances, 
+    fetchBalances, 
+    api,
+    isConnected 
   } = useWalletStore()
   
   const [showSendModal, setShowSendModal] = useState(false)
-  const [selectedToken, setSelectedToken] = useState<'BZR' | 'LIVO'>('BZR')
+  const [isLoadingBalances, setIsLoadingBalances] = useState(false)
+  const [transactions, setTransactions] = useState<any[]>([])
   
+  // Buscar balances ao montar o componente
   useEffect(() => {
-    if (activeAccount) {
-      fetchBalances(activeAccount.address)
-      fetchTransactions(activeAccount.address)
+    loadBalances()
+    loadTransactions()
+    
+    // Atualizar balances a cada 30 segundos
+    const interval = setInterval(() => {
+      loadBalances()
+    }, 30000)
+    
+    return () => clearInterval(interval)
+  }, [activeAccount])
+  
+  const loadBalances = async () => {
+    if (!activeAccount) return
+    
+    setIsLoadingBalances(true)
+    try {
+      await fetchBalances()
+    } catch (error) {
+      console.error('Error loading balances:', error)
+    } finally {
+      setIsLoadingBalances(false)
     }
-  }, [activeAccount, fetchBalances, fetchTransactions])
+  }
+  
+  const loadTransactions = async () => {
+    if (!activeAccount || !api || !isConnected) return
+    
+    try {
+      // Buscar eventos de Transfer da blockchain
+      const lastHeader = await api.rpc.chain.getHeader()
+      const blockNumber = lastHeader.number.toNumber()
+      
+      // Buscar últimos 10 blocos de eventos
+      const txs = []
+      for (let i = Math.max(1, blockNumber - 10); i <= blockNumber; i++) {
+        const blockHash = await api.rpc.chain.getBlockHash(i)
+        const events = await api.query.system.events.at(blockHash)
+        
+        events.forEach((record: any) => {
+          const { event } = record
+          if (event.section === 'balances' && event.method === 'Transfer') {
+            const [from, to, amount] = event.data
+            
+            // Verificar se a transação envolve nossa conta
+            if (from.toString() === activeAccount.address || to.toString() === activeAccount.address) {
+              txs.push({
+                id: `${blockHash.toString()}-${txs.length}`,
+                type: to.toString() === activeAccount.address ? 'received' : 'sent',
+                amount: Number(amount.toString()) / 1e12,
+                token: 'BZR',
+                from: from.toString(),
+                to: to.toString(),
+                blockNumber: i,
+                timestamp: new Date().toISOString(), // Aproximado
+                status: 'completed'
+              })
+            }
+          }
+        })
+      }
+      
+      setTransactions(txs.reverse()) // Mais recentes primeiro
+    } catch (error) {
+      console.error('Error loading transactions:', error)
+    }
+  }
   
   const handleLogout = async () => {
     await logout()
@@ -59,103 +135,84 @@ export default function Dashboard() {
   }
   
   const handleCopyAddress = () => {
-    if (activeAccount) {
+    if (activeAccount?.address) {
       copy(activeAccount.address)
     }
   }
   
-  const handleSendTokens = (token: 'BZR' | 'LIVO') => {
-    setSelectedToken(token)
-    setShowSendModal(true)
+  const handleRefreshBalances = () => {
+    loadBalances()
+    loadTransactions()
   }
   
-  // Quick Stats
-  const stats = [
-    {
-      title: t('dashboard.stats.totalBalance'),
-      value: formatCurrency(parseFloat(balances?.BZR?.available || '0') * 0.5),
-      change: '+12.5%',
-      icon: Wallet,
-      trend: 'up'
-    },
-    {
-      title: 'BZR',
-      value: balances?.BZR?.available || '0',
-      change: '+5.2%',
-      icon: CreditCard,
-      trend: 'up'
-    },
-    {
-      title: t('dashboard.cashback'),
-      value: balances?.LIVO?.balance || '0',
-      change: '+18.7%',
-      icon: TrendingUp,
-      trend: 'up'
-    },
-    {
-      title: t('dashboard.stats.transactions'),
-      value: transactions?.length || '0',
-      change: '24h',
-      icon: Activity,
-      trend: 'neutral'
-    }
-  ]
+  const formatAddress = (address: string) => {
+    if (!address) return ''
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
+  }
   
-  // Recent activities
-  const recentActivities = transactions?.slice(0, 5).map(tx => ({
-    id: tx.id,
-    type: tx.type === 'sent' ? t('dashboard.stats.sent') : t('dashboard.stats.received'),
-    amount: tx.amount,
-    token: tx.token,
-    address: tx.type === 'sent' ? tx.to : tx.from,
-    timestamp: tx.timestamp,
-    icon: tx.type === 'sent' ? ArrowUpRight : ArrowDownLeft,
-    color: tx.type === 'sent' ? 'text-red-500' : 'text-green-500'
-  })) || []
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
   
   return (
     <div className="min-h-screen bg-bazari-black">
       {/* Header */}
-      <header className="bg-gradient-to-r from-bazari-red to-bazari-gold p-6">
-        <div className="container mx-auto">
+      <header className="border-b border-bazari-red/10">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-                <Wallet className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-r from-bazari-red to-bazari-gold rounded-lg flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">{t('dashboard.title')}</h1>
-                <p className="text-white/80 text-sm">
-                  {t('dashboard.welcome')}, {user?.username || 'Cidadão Bazari'}
+                <h1 className="text-xl font-bold text-bazari-sand">Bazari Dashboard</h1>
+                <p className="text-sm text-bazari-sand/60">
+                  {user?.username || user?.email || 'Usuário'}
                 </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Status de Conexão */}
+              <div className="flex items-center space-x-2">
+                <div className={cn(
+                  "w-2 h-2 rounded-full",
+                  isConnected ? "bg-green-500" : "bg-red-500"
+                )} />
+                <span className="text-xs text-bazari-sand/60">
+                  {isConnected ? 'Conectado' : 'Desconectado'}
+                </span>
+              </div>
+              
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/10"
-                onClick={() => navigate('/profile')}
+                className="text-bazari-sand/60 hover:text-bazari-sand"
+              >
+                <Bell className="w-5 h-5" />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-bazari-sand/60 hover:text-bazari-sand"
               >
                 <Settings className="w-5 h-5" />
               </Button>
               
               <Button
                 variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/10"
-              >
-                <Bell className="w-5 h-5" />
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
+                size="sm"
                 onClick={handleLogout}
+                className="text-bazari-red hover:text-bazari-red/80"
               >
                 <LogOut className="w-4 h-4 mr-2" />
-                {t('common.logout')}
+                Sair
               </Button>
             </div>
           </div>
@@ -163,225 +220,218 @@ export default function Dashboard() {
       </header>
       
       {/* Main Content */}
-      <main className="container mx-auto p-6">
-        {/* Account Info Card */}
-        {activeAccount && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <Card className="bg-bazari-black/50 border-bazari-red/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-bazari-red to-bazari-gold rounded-xl flex items-center justify-center">
-                      <User className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-bazari-sand/60">{t('dashboard.activeAccount')}</p>
-                      <p className="font-semibold text-bazari-sand">{activeAccount.name}</p>
-                      <div className="flex items-center space-x-2">
-                        <code className="text-xs text-bazari-sand/60">
-                          {truncateAddress(activeAccount.address)}
-                        </code>
-                        <button
-                          onClick={handleCopyAddress}
-                          className="text-bazari-gold hover:text-bazari-gold/80"
-                        >
-                          <Copy size={14} />
-                        </button>
-                        {copiedText && (
-                          <span className="text-xs text-green-500">{t('common.copied')}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-3">
-                    <Button
-                      onClick={() => handleSendTokens('BZR')}
-                      className="bg-bazari-red hover:bg-bazari-red/80"
+      <main className="container mx-auto px-4 py-8">
+        {/* Wallet Info Card */}
+        <Card className="mb-6 border-bazari-red/20 bg-gradient-to-br from-bazari-black to-bazari-black/50">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-bazari-sand">Minha Carteira</CardTitle>
+                <CardDescription className="text-bazari-sand/60">
+                  <div className="flex items-center space-x-2">
+                    <span>{formatAddress(activeAccount?.address || '')}</span>
+                    <button
+                      onClick={handleCopyAddress}
+                      className="text-bazari-gold hover:text-bazari-gold/80 transition-colors"
                     >
-                      <Send className="w-4 h-4 mr-2" />
-                      {t('dashboard.sendTokens', { token: 'BZR' })}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate('/wallet')}
-                      className="border-bazari-gold/30 hover:bg-bazari-gold/10"
-                    >
-                      {t('dashboard.manageWallet')}
-                    </Button>
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    {copiedText && (
+                      <span className="text-xs text-green-500">Copiado!</span>
+                    )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-        
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-4 gap-4 mb-6">
-          {stats.map((stat, index) => {
-            const Icon = stat.icon
-            return (
-              <motion.div
-                key={stat.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                </CardDescription>
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRefreshBalances}
+                disabled={isLoadingBalances}
+                className="text-bazari-sand/60 hover:text-bazari-sand"
               >
-                <Card className="bg-bazari-black/50 border-bazari-red/20 hover:border-bazari-gold/30 transition-colors">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-10 h-10 bg-bazari-gold/10 rounded-xl flex items-center justify-center">
-                        <Icon className="w-5 h-5 text-bazari-gold" />
-                      </div>
-                      <span className={`text-sm ${
-                        stat.trend === 'up' ? 'text-green-500' :
-                        stat.trend === 'down' ? 'text-red-500' :
-                        'text-bazari-sand/60'
-                      }`}>
-                        {stat.change}
-                      </span>
-                    </div>
-                    <p className="text-sm text-bazari-sand/60 mb-1">{stat.title}</p>
-                    <p className="text-2xl font-bold text-bazari-sand">{stat.value}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )
-          })}
-        </div>
+                {isLoadingBalances ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* BZR Balance */}
+              <div className="bg-bazari-black/50 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-bazari-sand/60">BZR</span>
+                  <TrendingUp className="w-4 h-4 text-green-500" />
+                </div>
+                <p className="text-2xl font-bold text-bazari-sand">
+                  {isLoadingBalances ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    balances.bzr.toLocaleString('pt-BR', { maximumFractionDigits: 4 })
+                  )}
+                </p>
+                <p className="text-xs text-bazari-sand/40 mt-1">
+                  Token nativo da rede
+                </p>
+              </div>
+              
+              {/* LIVO Balance */}
+              <div className="bg-bazari-black/50 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-bazari-sand/60">LIVO</span>
+                  <TrendingUp className="w-4 h-4 text-green-500" />
+                </div>
+                <p className="text-2xl font-bold text-bazari-sand">
+                  {isLoadingBalances ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    balances.livo.toLocaleString('pt-BR', { maximumFractionDigits: 4 })
+                  )}
+                </p>
+                <p className="text-xs text-bazari-sand/40 mt-1">
+                  Tokens de cashback
+                </p>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <Button 
+                className="bg-bazari-red hover:bg-bazari-red/90"
+                onClick={() => setShowSendModal(true)}
+                disabled={!isConnected}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Enviar
+              </Button>
+              <Button 
+                variant="outline"
+                className="border-bazari-red/20 text-bazari-sand hover:bg-bazari-red/10"
+                disabled={!isConnected}
+              >
+                <ArrowDownLeft className="w-4 h-4 mr-2" />
+                Receber
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
         
-        {/* Recent Activity & Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Recent Activity */}
-          <Card className="bg-bazari-black/50 border-bazari-red/20">
-            <CardHeader>
-              <CardTitle className="text-bazari-sand">{t('dashboard.recentActivity')}</CardTitle>
-              <CardDescription className="text-bazari-sand/60">
-                {t('wallet.transactionsDescription')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-bazari-gold" />
-                </div>
-              ) : recentActivities.length > 0 ? (
-                <div className="space-y-3">
-                  {recentActivities.map((activity) => {
-                    const ActivityIcon = activity.icon
-                    return (
-                      <div
-                        key={activity.id}
-                        className="flex items-center justify-between p-3 bg-bazari-black/30 rounded-xl hover:bg-bazari-black/50 transition-colors"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            activity.type === t('dashboard.stats.sent') ? 'bg-red-500/10' : 'bg-green-500/10'
-                          }`}>
-                            <ActivityIcon className={`w-4 h-4 ${activity.color}`} />
-                          </div>
-                          <div>
-                            <p className="font-medium text-bazari-sand">{activity.type}</p>
-                            <p className="text-xs text-bazari-sand/60">
-                              {truncateAddress(activity.address)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-bazari-sand">
-                            {activity.amount} {activity.token}
-                          </p>
-                          <p className="text-xs text-bazari-sand/60">
-                            {new Date(activity.timestamp).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  
-                  <Button
-                    variant="outline"
-                    className="w-full border-bazari-gold/30 hover:bg-bazari-gold/10"
-                    onClick={() => navigate('/wallet')}
-                  >
-                    {t('dashboard.viewAllTransactions')}
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-bazari-sand/60">
-                  <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>{t('dashboard.noTransactions')}</p>
-                  <p className="text-sm mt-1">
-                    {t('dashboard.startTransacting')}
-                  </p>
-                </div>
-              )}
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card 
+            className="border-bazari-red/10 bg-bazari-black/50 hover:bg-bazari-black/70 cursor-pointer transition-colors"
+            onClick={() => navigate('/wallet')}
+          >
+            <CardContent className="flex flex-col items-center justify-center p-6">
+              <Wallet className="w-8 h-8 text-bazari-gold mb-2" />
+              <span className="text-sm text-bazari-sand">Carteira</span>
             </CardContent>
           </Card>
           
-          {/* Quick Actions */}
-          <Card className="bg-bazari-black/50 border-bazari-red/20">
-            <CardHeader>
-              <CardTitle className="text-bazari-sand">{t('dashboard.quickActions')}</CardTitle>
-              <CardDescription className="text-bazari-sand/60">
-                {t('modules.title')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  className="border-bazari-gold/30 hover:bg-bazari-gold/10 h-auto py-4 flex-col"
-                  onClick={() => navigate('/marketplace')}
-                >
-                  <Shield className="w-6 h-6 mb-2 text-bazari-gold" />
-                  <span>{t('dashboard.actions.marketplace')}</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="border-bazari-gold/30 hover:bg-bazari-gold/10 h-auto py-4 flex-col"
-                  onClick={() => navigate('/dao')}
-                >
-                  <Users className="w-6 h-6 mb-2 text-bazari-gold" />
-                  <span>{t('dashboard.actions.subdaos')}</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="border-bazari-gold/30 hover:bg-bazari-gold/10 h-auto py-4 flex-col"
-                  onClick={() => navigate('/p2p')}
-                >
-                  <ArrowUpDown className="w-6 h-6 mb-2 text-bazari-gold" />
-                  <span>{t('dashboard.actions.p2p')}</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="border-bazari-gold/30 hover:bg-bazari-gold/10 h-auto py-4 flex-col"
-                  onClick={() => navigate('/profile')}
-                >
-                  <User className="w-6 h-6 mb-2 text-bazari-gold" />
-                  <span>{t('dashboard.actions.profile')}</span>
-                </Button>
-              </div>
+          <Card 
+            className="border-bazari-red/10 bg-bazari-black/50 hover:bg-bazari-black/70 cursor-pointer transition-colors"
+            onClick={() => navigate('/marketplace')}
+          >
+            <CardContent className="flex flex-col items-center justify-center p-6">
+              <Grid className="w-8 h-8 text-bazari-gold mb-2" />
+              <span className="text-sm text-bazari-sand">Marketplace</span>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className="border-bazari-red/10 bg-bazari-black/50 hover:bg-bazari-black/70 cursor-pointer transition-colors"
+            onClick={() => navigate('/dao')}
+          >
+            <CardContent className="flex flex-col items-center justify-center p-6">
+              <Users className="w-8 h-8 text-bazari-gold mb-2" />
+              <span className="text-sm text-bazari-sand">DAO</span>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className="border-bazari-red/10 bg-bazari-black/50 hover:bg-bazari-black/70 cursor-pointer transition-colors"
+            onClick={() => navigate('/profile')}
+          >
+            <CardContent className="flex flex-col items-center justify-center p-6">
+              <Settings className="w-8 h-8 text-bazari-gold mb-2" />
+              <span className="text-sm text-bazari-sand">Perfil</span>
             </CardContent>
           </Card>
         </div>
+        
+        {/* Recent Transactions */}
+        <Card className="border-bazari-red/20 bg-bazari-black/50">
+          <CardHeader>
+            <CardTitle className="text-bazari-sand">Transações Recentes</CardTitle>
+            <CardDescription className="text-bazari-sand/60">
+              Últimas movimentações on-chain da sua carteira
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {transactions.length === 0 ? (
+              <p className="text-center text-bazari-sand/40 py-8">
+                {isConnected 
+                  ? 'Nenhuma transação encontrada nos últimos blocos' 
+                  : 'Conectando com a blockchain...'}
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {transactions.map((tx) => (
+                  <div 
+                    key={tx.id}
+                    className="flex items-center justify-between p-4 bg-bazari-black/30 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center",
+                        tx.type === 'received' 
+                          ? "bg-green-500/10 text-green-500" 
+                          : "bg-red-500/10 text-red-500"
+                      )}>
+                        {tx.type === 'received' ? (
+                          <ArrowDownLeft className="w-5 h-5" />
+                        ) : (
+                          <ArrowUpRight className="w-5 h-5" />
+                        )}
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-bazari-sand">
+                          {tx.type === 'received' ? 'Recebido' : 'Enviado'}
+                        </p>
+                        <p className="text-xs text-bazari-sand/40">
+                          Bloco #{tx.blockNumber}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right">
+                      <p className={cn(
+                        "text-sm font-medium",
+                        tx.type === 'received' ? "text-green-500" : "text-red-500"
+                      )}>
+                        {tx.type === 'received' ? '+' : '-'}{tx.amount} {tx.token}
+                      </p>
+                      <p className="text-xs text-bazari-sand/40">
+                        {tx.type === 'received' 
+                          ? `De: ${formatAddress(tx.from)}`
+                          : `Para: ${formatAddress(tx.to)}`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
       
       {/* Send Modal */}
-      {showSendModal && (
-        <SendModal
-          isOpen={showSendModal}
-          onClose={() => setShowSendModal(false)}
-          defaultToken={selectedToken}
-        />
-      )}
+      <SendModal isOpen={showSendModal} onClose={() => setShowSendModal(false)} />
     </div>
   )
 }
