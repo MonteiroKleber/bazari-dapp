@@ -106,14 +106,10 @@ export default function Auth() {
     setLoading(true)
     
     try {
-      // Criar wallet localmente
       const result = await createWallet(password)
-      setGeneratedSeed(result.mnemonic)
-      setSeedWords(result.mnemonic.split(' '))
-      
-      // Ir para tela de confirmação
+      setGeneratedSeed(result.seedPhrase)
+      setSeedWords(result.seedPhrase.split(' '))
       setMode('confirm')
-      setStep(2)
     } catch (error: any) {
       console.error('Create wallet error:', error)
       setError(error.message || 'Erro ao criar carteira')
@@ -122,36 +118,41 @@ export default function Auth() {
     }
   }
 
-  // Confirmar que anotou a seed
+  // Confirmar seed - Passo 2
   const handleConfirmSeed = () => {
-    // Gerar palavras aleatórias para verificação
+    if (!seedConfirmed) {
+      setError('Você precisa confirmar que salvou a seed phrase')
+      return
+    }
+    
+    // Gerar índices aleatórios para verificação
     const indices = generateVerificationIndices()
     setVerificationIndices(indices)
     setVerificationInputs({})
-    
-    // Ir para tela de verificação
     setMode('verify')
-    setStep(3)
   }
 
-  // Verificar palavras da seed
+  // Verificar seed - Passo 3
   const handleVerifySeed = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     
-    // Verificar se todas as palavras estão corretas
-    let allCorrect = true
-    for (const index of verificationIndices) {
-      const input = verificationInputs[index]?.toLowerCase().trim()
-      const correct = seedWords[index].toLowerCase()
-      
-      if (input !== correct) {
-        allCorrect = false
-        break
-      }
+    // Verificar se todas as palavras foram preenchidas
+    const allFilled = verificationIndices.every(index => 
+      verificationInputs[index]?.trim()
+    )
+    
+    if (!allFilled) {
+      setError('Por favor, preencha todas as palavras')
+      return
     }
     
-    if (!allCorrect) {
+    // Verificar se as palavras estão corretas
+    const isCorrect = verificationIndices.every(index => 
+      verificationInputs[index]?.trim().toLowerCase() === seedWords[index].toLowerCase()
+    )
+    
+    if (!isCorrect) {
       setError('As palavras não correspondem. Por favor, verifique sua seed phrase.')
       return
     }
@@ -230,24 +231,24 @@ export default function Auth() {
   const renderChoice = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
           Bem-vindo ao Bazari
         </h2>
-        <p className="text-gray-400">
+        <p className="text-bazari-sand/60">
           Escolha como deseja continuar
         </p>
       </div>
 
       <button
         onClick={() => setMode('create')}
-        className="w-full p-6 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-2xl transition-all group"
+        className="w-full p-6 bg-gradient-to-r from-bazari-red to-bazari-red/80 hover:from-bazari-red/80 hover:to-bazari-red rounded-2xl transition-all group border border-bazari-red/20"
       >
         <div className="flex items-center justify-between">
           <div className="text-left">
             <h3 className="text-xl font-bold text-white mb-1">
               Criar Nova Carteira
             </h3>
-            <p className="text-red-200 text-sm">
+            <p className="text-bazari-sand/80 text-sm">
               Gerar uma nova seed phrase e endereço
             </p>
           </div>
@@ -257,36 +258,36 @@ export default function Auth() {
 
       <button
         onClick={() => setMode('import')}
-        className="w-full p-6 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-2xl transition-all group"
+        className="w-full p-6 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 rounded-2xl transition-all group"
       >
         <div className="flex items-center justify-between">
           <div className="text-left">
-            <h3 className="text-xl font-bold text-white mb-1">
+            <h3 className="text-xl font-bold text-bazari-sand mb-1">
               Importar Carteira Existente
             </h3>
-            <p className="text-gray-400 text-sm">
+            <p className="text-bazari-sand/60 text-sm">
               Restaurar usando sua seed phrase
             </p>
           </div>
-          <Key className="text-gray-400 group-hover:text-white transition-colors" size={24} />
+          <Key className="text-bazari-gold group-hover:text-bazari-gold/80 transition-colors" size={24} />
         </div>
       </button>
 
       {isInitialized && isLocked && (
         <button
           onClick={() => setMode('unlock')}
-          className="w-full p-6 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-2xl transition-all group"
+          className="w-full p-6 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 rounded-2xl transition-all group"
         >
           <div className="flex items-center justify-between">
             <div className="text-left">
-              <h3 className="text-xl font-bold text-white mb-1">
+              <h3 className="text-xl font-bold text-bazari-sand mb-1">
                 Desbloquear Carteira
               </h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-bazari-sand/60 text-sm">
                 Sua carteira está bloqueada
               </p>
             </div>
-            <Key className="text-gray-400 group-hover:text-white transition-colors" size={24} />
+            <Key className="text-bazari-gold group-hover:text-bazari-gold/80 transition-colors" size={24} />
           </div>
         </button>
       )}
@@ -298,30 +299,30 @@ export default function Auth() {
     <form onSubmit={handleCreateWallet} className="space-y-6">
       {/* Progress */}
       <div className="flex items-center justify-center space-x-2 mb-6">
-        <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+        <div className="w-8 h-8 bg-bazari-red text-white rounded-full flex items-center justify-center text-sm font-bold">
           1
         </div>
-        <div className="w-16 h-1 bg-gray-700" />
-        <div className="w-8 h-8 bg-gray-700 text-gray-400 rounded-full flex items-center justify-center text-sm font-bold">
+        <div className="w-16 h-1 bg-bazari-red/20" />
+        <div className="w-8 h-8 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand/60 rounded-full flex items-center justify-center text-sm font-bold">
           2
         </div>
-        <div className="w-16 h-1 bg-gray-700" />
-        <div className="w-8 h-8 bg-gray-700 text-gray-400 rounded-full flex items-center justify-center text-sm font-bold">
+        <div className="w-16 h-1 bg-bazari-red/20" />
+        <div className="w-8 h-8 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand/60 rounded-full flex items-center justify-center text-sm font-bold">
           3
         </div>
       </div>
 
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
           Criar Senha de Proteção
         </h2>
-        <p className="text-gray-400 text-sm">
+        <p className="text-bazari-sand/60 text-sm">
           Esta senha protegerá sua carteira localmente
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
           Senha
         </label>
         <div className="relative">
@@ -329,7 +330,7 @@ export default function Auth() {
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
             placeholder="Mínimo 8 caracteres"
             required
             disabled={loading}
@@ -338,7 +339,7 @@ export default function Auth() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-bazari-sand/60 hover:text-bazari-sand"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -346,14 +347,14 @@ export default function Auth() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
           Confirmar Senha
         </label>
         <input
           type={showPassword ? 'text' : 'password'}
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
           placeholder="Digite a senha novamente"
           required
           disabled={loading}
@@ -372,14 +373,14 @@ export default function Auth() {
         <button
           type="button"
           onClick={() => setMode('choice')}
-          className="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
+          className="flex-1 py-3 px-4 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand font-medium rounded-lg transition-colors"
         >
           Voltar
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Criando...' : 'Continuar'}
         </button>
@@ -392,60 +393,56 @@ export default function Auth() {
     <div className="space-y-6">
       {/* Progress */}
       <div className="flex items-center justify-center space-x-2 mb-6">
-        <div className="w-8 h-8 bg-gray-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+        <div className="w-8 h-8 bg-bazari-gold text-bazari-black rounded-full flex items-center justify-center text-sm font-bold">
           ✓
         </div>
-        <div className="w-16 h-1 bg-red-600" />
-        <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+        <div className="w-16 h-1 bg-bazari-gold" />
+        <div className="w-8 h-8 bg-bazari-red text-white rounded-full flex items-center justify-center text-sm font-bold">
           2
         </div>
-        <div className="w-16 h-1 bg-gray-700" />
-        <div className="w-8 h-8 bg-gray-700 text-gray-400 rounded-full flex items-center justify-center text-sm font-bold">
+        <div className="w-16 h-1 bg-bazari-red/20" />
+        <div className="w-8 h-8 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand/60 rounded-full flex items-center justify-center text-sm font-bold">
           3
         </div>
       </div>
 
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
           Sua Seed Phrase
         </h2>
-        <p className="text-gray-400 text-sm">
+        <p className="text-bazari-sand/60 text-sm">
           Anote estas palavras em ordem. É a única forma de recuperar sua carteira!
         </p>
       </div>
 
-      {/* Aviso importante */}
-      <div className="bg-red-900/20 border border-red-600 rounded-lg p-4">
+      {/* Aviso */}
+      <div className="bg-bazari-red/10 border border-bazari-red/30 rounded-xl p-4 mb-6">
         <div className="flex items-start space-x-3">
-          <AlertTriangle className="text-red-500 mt-1 flex-shrink-0" size={20} />
-          <div className="text-sm">
-            <p className="text-red-200 font-bold mb-1">ATENÇÃO CRÍTICA!</p>
-            <ul className="text-red-300 space-y-1">
-              <li>• Nunca compartilhe estas palavras com ninguém</li>
-              <li>• Anote em papel e guarde em local seguro</li>
-              <li>• Perder a seed = perder acesso permanente</li>
-              <li>• Não tire screenshot ou salve digitalmente</li>
-            </ul>
+          <AlertTriangle className="text-bazari-red mt-0.5" size={20} />
+          <div className="text-sm text-bazari-sand/80">
+            <p className="font-semibold mb-1">Importante!</p>
+            <p>Nunca compartilhe sua seed phrase. Qualquer pessoa com acesso a ela pode roubar seus fundos.</p>
           </div>
         </div>
       </div>
 
-      {/* Seed phrase */}
-      <div className="bg-gray-800 rounded-lg p-6">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-sm font-medium text-gray-300">12 palavras de recuperação:</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowSeed(!showSeed)}
-              className="text-gray-400 hover:text-gray-300"
-            >
-              {showSeed ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
+      {/* Seed Display */}
+      <div className="bg-bazari-black/50 border border-bazari-gold/30 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={() => setShowSeed(!showSeed)}
+            className="text-sm text-bazari-gold hover:text-bazari-gold/80 flex items-center space-x-2"
+          >
+            {showSeed ? <EyeOff size={16} /> : <Eye size={16} />}
+            <span>{showSeed ? 'Ocultar' : 'Mostrar'} palavras</span>
+          </button>
+          
+          <div className="flex items-center space-x-2">
             <button
               type="button"
               onClick={handleCopySeed}
-              className="text-gray-400 hover:text-gray-300"
+              className="text-sm text-bazari-gold hover:text-bazari-gold/80 flex items-center space-x-2"
             >
               {copiedSeed ? <Check size={20} className="text-green-400" /> : <Copy size={20} />}
             </button>
@@ -456,18 +453,18 @@ export default function Auth() {
           {seedWords.map((word, index) => (
             <div
               key={index}
-              className="bg-gray-900 px-3 py-2 rounded-lg text-center"
+              className="bg-bazari-black/80 border border-bazari-red/20 px-3 py-2 rounded-lg text-center"
               style={{ filter: showSeed ? 'none' : 'blur(5px)' }}
             >
-              <span className="text-gray-500 text-xs mr-2">{index + 1}.</span>
-              <span className="text-white font-mono text-sm">{word}</span>
+              <span className="text-bazari-sand/50 text-xs mr-2">{index + 1}.</span>
+              <span className="text-bazari-sand font-mono text-sm">{word}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Confirmação */}
-      <div className="bg-gray-800 rounded-lg p-4">
+      <div className="bg-bazari-black/50 border border-bazari-gold/30 rounded-lg p-4">
         <label className="flex items-start space-x-3 cursor-pointer">
           <input
             type="checkbox"
@@ -475,7 +472,7 @@ export default function Auth() {
             onChange={(e) => setSeedConfirmed(e.target.checked)}
             className="mt-1"
           />
-          <span className="text-sm text-gray-300">
+          <span className="text-sm text-bazari-sand/80">
             Confirmo que anotei minha seed phrase em um local seguro e entendo que é minha única forma de recuperar a carteira
           </span>
         </label>
@@ -484,7 +481,7 @@ export default function Auth() {
       <button
         onClick={handleConfirmSeed}
         disabled={!seedConfirmed}
-        className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Verificar Seed Phrase
       </button>
@@ -496,24 +493,24 @@ export default function Auth() {
     <form onSubmit={handleVerifySeed} className="space-y-6">
       {/* Progress */}
       <div className="flex items-center justify-center space-x-2 mb-6">
-        <div className="w-8 h-8 bg-gray-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+        <div className="w-8 h-8 bg-bazari-gold text-bazari-black rounded-full flex items-center justify-center text-sm font-bold">
           ✓
         </div>
-        <div className="w-16 h-1 bg-gray-600" />
-        <div className="w-8 h-8 bg-gray-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+        <div className="w-16 h-1 bg-bazari-gold" />
+        <div className="w-8 h-8 bg-bazari-gold text-bazari-black rounded-full flex items-center justify-center text-sm font-bold">
           ✓
         </div>
-        <div className="w-16 h-1 bg-red-600" />
-        <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+        <div className="w-16 h-1 bg-bazari-gold" />
+        <div className="w-8 h-8 bg-bazari-red text-white rounded-full flex items-center justify-center text-sm font-bold">
           3
         </div>
       </div>
 
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
           Verificar Seed Phrase
         </h2>
-        <p className="text-gray-400 text-sm">
+        <p className="text-bazari-sand/60 text-sm">
           Digite as palavras solicitadas para confirmar que você salvou corretamente
         </p>
       </div>
@@ -521,7 +518,7 @@ export default function Auth() {
       <div className="space-y-4">
         {verificationIndices.map((index) => (
           <div key={index}>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
               Palavra #{index + 1}
             </label>
             <input
@@ -531,7 +528,7 @@ export default function Auth() {
                 ...verificationInputs,
                 [index]: e.target.value
               })}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono"
+              className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent font-mono placeholder-bazari-sand/40"
               placeholder={`Digite a palavra ${index + 1}`}
               required
               autoComplete="off"
@@ -562,14 +559,14 @@ export default function Auth() {
             setMode('confirm')
             setError('')
           }}
-          className="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
+          className="flex-1 py-3 px-4 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand font-medium rounded-lg transition-colors"
         >
           Voltar
         </button>
         <button
           type="submit"
           disabled={loading || seedConfirmed}
-          className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Verificando...' : 'Finalizar Criação'}
         </button>
@@ -581,22 +578,22 @@ export default function Auth() {
   const renderImport = () => (
     <form onSubmit={handleImportWallet} className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
           Importar Carteira
         </h2>
-        <p className="text-gray-400 text-sm">
+        <p className="text-bazari-sand/60 text-sm">
           Restaure sua carteira usando a seed phrase
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
           Seed Phrase (12 ou 24 palavras)
         </label>
         <textarea
           value={seedPhrase}
           onChange={(e) => setSeedPhrase(e.target.value)}
-          className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent h-24 font-mono text-sm"
+          className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent h-24 font-mono text-sm placeholder-bazari-sand/40"
           placeholder="palavra1 palavra2 palavra3..."
           required
           disabled={loading}
@@ -605,7 +602,7 @@ export default function Auth() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
           Nova Senha
         </label>
         <div className="relative">
@@ -613,7 +610,7 @@ export default function Auth() {
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
             placeholder="Senha para proteger localmente"
             required
             disabled={loading}
@@ -622,7 +619,7 @@ export default function Auth() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-bazari-sand/60 hover:text-bazari-sand"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -640,14 +637,14 @@ export default function Auth() {
         <button
           type="button"
           onClick={() => setMode('choice')}
-          className="flex-1 py-3 px-4 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors"
+          className="flex-1 py-3 px-4 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand font-medium rounded-lg transition-colors"
         >
           Voltar
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Importando...' : 'Importar Carteira'}
         </button>
@@ -659,21 +656,21 @@ export default function Auth() {
   const renderUnlock = () => (
     <form onSubmit={handleUnlock} className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
           Desbloquear Carteira
         </h2>
-        <p className="text-gray-400 text-sm">
+        <p className="text-bazari-sand/60 text-sm">
           Digite sua senha para acessar
         </p>
         {currentAddress && (
-          <p className="text-xs text-gray-500 mt-2 font-mono">
+          <p className="text-xs text-bazari-sand/50 mt-2 font-mono">
             {currentAddress.slice(0, 8)}...{currentAddress.slice(-8)}
           </p>
         )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
           Senha
         </label>
         <div className="relative">
@@ -681,7 +678,7 @@ export default function Auth() {
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
             placeholder="Digite sua senha"
             required
             disabled={loading}
@@ -689,7 +686,7 @@ export default function Auth() {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-bazari-sand/60 hover:text-bazari-sand"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -706,17 +703,17 @@ export default function Auth() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Desbloqueando...' : 'Desbloquear'}
       </button>
 
-      <div className="text-center text-sm text-gray-400">
+      <div className="text-center text-sm text-bazari-sand/60">
         Esqueceu a senha?{' '}
         <button
           type="button"
           onClick={() => setMode('import')}
-          className="text-red-400 hover:text-red-300"
+          className="text-bazari-gold hover:text-bazari-gold/80"
         >
           Restaurar com seed phrase
         </button>
@@ -725,19 +722,19 @@ export default function Auth() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-bazari-black via-bazari-black to-bazari-black/90 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-red-600 rounded-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-bazari-red to-bazari-gold rounded-2xl mb-4">
             <Wallet className="text-white" size={40} />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Bazari</h1>
-          <p className="text-gray-400">100% Web3 • Sem intermediários</p>
+          <h1 className="text-3xl font-bold text-bazari-sand mb-2">Bazari</h1>
+          <p className="text-bazari-sand/60">100% Web3 • Sem intermediários</p>
         </div>
 
         {/* Card */}
-        <div className="bg-gray-900/50 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-800 p-8">
+        <div className="bg-bazari-black/50 backdrop-blur-lg rounded-2xl shadow-2xl border border-bazari-red/20 p-8">
           {/* Security Badge */}
           <div className="flex items-center justify-center space-x-2 mb-6 text-green-400">
             <Shield size={16} />
@@ -754,7 +751,7 @@ export default function Auth() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-xs text-gray-500">
+        <div className="text-center mt-6 text-xs text-bazari-sand/50">
           <p>Suas chaves privadas nunca saem do seu dispositivo</p>
           <p className="mt-1">Armazenamento local criptografado</p>
         </div>
