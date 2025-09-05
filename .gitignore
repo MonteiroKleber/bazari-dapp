@@ -1,29 +1,29 @@
 # Dependencies
 node_modules
-.pnpm-store
-.yarn
+.pnp
+.pnp.js
 
-# Build outputs
+# Testing
+coverage
+
+# Production builds
 dist
+dist-ssr
 build
-.next
 out
-*.tsbuildinfo
+.next
 
-# Environment files
+# Environment variables
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
 !.env.example
 
-# IDE
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.swp
-*.swo
-*.swn
-.DS_Store
+# Backups
+*.backup.*
+.env.backup*
 
 # Logs
 logs
@@ -34,31 +34,52 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Testing
-coverage
-.nyc_output
+# OS files
+.DS_Store
+Thumbs.db
 
-# Turbo
-.turbo
-
-# Misc
-*.pem
-.cache
-tmp
-temp
-
-# Substrate/Polkadot
-target/
-**/*.rs.bk
-
-# IPFS
-ipfs/repo
-ipfs/data
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.swp
+*.swo
+*~
 
 # Database
-*.db
 *.sqlite
 *.sqlite3
+*.db
+prisma/migrations/*
+!prisma/migrations/.gitkeep
 
-# Docker
-.dockerignore
+# Redis
+dump.rdb
+
+# IPFS
+.ipfs
+
+# Blockchain
+apps/bazari-chain/target
+apps/bazari-chain/Cargo.lock
+
+# Temporary files
+tmp
+temp
+.tmp
+.cache
+.turbo
+
+# Local certificates
+*.pem
+*.key
+*.crt
+*.cer
+
+# Package manager
+.yarn
+.pnpm-store
+
+# TypeScript
+*.tsbuildinfo
