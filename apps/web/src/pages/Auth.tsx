@@ -39,8 +39,10 @@ export default function Auth() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
+  const [isProcessing, setIsProcessing] = useState(false)
   
-  const from = (location.state as any)?.from?.pathname || '/wallet'
+  // Redirecionamento padrão para /dashboard ao invés de /wallet
+  const from = (location.state as any)?.from?.pathname || '/dashboard'
   
   useEffect(() => {
     if (isAuthenticated) {
@@ -53,13 +55,17 @@ export default function Auth() {
   }, [])
   
   const checkVaultStatus = async () => {
-    const vaultExists = await hasVault()
-    if (vaultExists) {
-      setMode('login')
-      setStep('initial')
-    } else {
-      setMode('register')
-      setStep('initial')
+    try {
+      const vaultExists = await hasVault()
+      if (vaultExists) {
+        setMode('login')
+        setStep('initial')
+      } else {
+        setMode('register')
+        setStep('initial')
+      }
+    } catch (err) {
+      console.error('Error checking vault status:', err)
     }
   }
   
@@ -80,6 +86,7 @@ export default function Auth() {
       setSeed(generatedSeed)
       setStep('backup-seed')
     } catch (err: any) {
+      console.error('Error generating seed:', err)
       setError(err.message || t('auth.errors.seedGenerationFailed'))
     }
   }
@@ -89,38 +96,76 @@ export default function Auth() {
       setError(t('auth.errors.seedNotConfirmed'))
       return
     }
+    setError('')
     setStep('terms')
   }
   
   const handleAcceptTerms = async () => {
+    // Validação dos termos
     if (!termsAccepted) {
       setError(t('auth.errors.termsNotAccepted'))
       return
     }
     
+    // Validação de dados necessários
+    if (!seed || !password) {
+      setError('Dados incompletos. Por favor, reinicie o processo.')
+      return
+    }
+    
+    setIsProcessing(true)
+    setError('')
+    
     try {
-      setError('')
-      // Create vault with seed and password
+      console.log('Creating vault...')
+      
+      // Criar vault com seed e senha
       const vaultCreated = await createVault(password, seed)
       
-      if (vaultCreated) {
-        // Register user on backend
+      if (!vaultCreated) {
+        throw new Error('Falha ao criar carteira. Tente novamente.')
+      }
+      
+      console.log('Vault created successfully')
+      
+      // Tentar fazer registro no backend
+      try {
+        console.log('Registering user...')
         const registered = await register({
-          username,
-          email,
+          username: username || undefined,
+          email: email || undefined,
           termsAccepted: true,
           termsVersion: '1.0.0'
         })
         
-        if (registered) {
-          setStep('complete')
-          setTimeout(() => {
-            navigate('/wallet')
-          }, 2000)
+        if (!registered) {
+          console.warn('Registration on backend failed, but wallet was created')
+        } else {
+          console.log('User registered successfully')
         }
+      } catch (registerErr) {
+        // Se falhar o registro no backend, ainda assim a carteira foi criada
+        console.error('Registration error (non-fatal):', registerErr)
       }
+      
+      // Mesmo se o registro no backend falhar, a carteira foi criada com sucesso
+      setStep('complete')
+      
+      // Redireciona para /dashboard após 2 segundos
+      setTimeout(() => {
+        // Tentar fazer login automático
+        login().then(() => {
+          navigate('/dashboard')
+        }).catch(() => {
+          // Se login falhar, ainda assim redireciona
+          navigate('/dashboard')
+        })
+      }, 2000)
+      
     } catch (err: any) {
+      console.error('Error in handleAcceptTerms:', err)
       setError(err.message || t('auth.errors.registrationFailed'))
+      setIsProcessing(false)
     }
   }
   
@@ -130,18 +175,29 @@ export default function Auth() {
       return
     }
     
+    setIsProcessing(true)
+    setError('')
+    
     try {
-      setError('')
+      console.log('Unlocking vault...')
       const unlocked = await unlockVault(password)
       
-      if (unlocked) {
-        const loggedIn = await login()
-        if (loggedIn) {
-          navigate(from, { replace: true })
-        }
+      if (!unlocked) {
+        throw new Error('Senha incorreta')
+      }
+      
+      console.log('Vault unlocked, logging in...')
+      const loggedIn = await login()
+      
+      if (loggedIn) {
+        navigate(from, { replace: true })
+      } else {
+        throw new Error('Falha no login')
       }
     } catch (err: any) {
+      console.error('Login error:', err)
       setError(err.message || t('auth.errors.loginFailed'))
+      setIsProcessing(false)
     }
   }
   
@@ -218,6 +274,7 @@ export default function Auth() {
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full px-4 py-2 pr-10 bg-bazari-black/50 border border-bazari-red/20 rounded-xl text-bazari-sand focus:outline-none focus:border-bazari-gold"
                         placeholder="••••••••"
+                        disabled={isProcessing}
                       />
                       <button
                         type="button"
@@ -240,6 +297,7 @@ export default function Auth() {
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className="w-full px-4 py-2 bg-bazari-black/50 border border-bazari-red/20 rounded-xl text-bazari-sand focus:outline-none focus:border-bazari-gold"
                         placeholder="••••••••"
+                        disabled={isProcessing}
                       />
                     </div>
                   )}
@@ -255,10 +313,10 @@ export default function Auth() {
                 <CardFooter className="flex flex-col space-y-3">
                   <Button
                     onClick={mode === 'login' ? handleLogin : handleCreateVault}
-                    disabled={isUnlocking || isCreatingVault}
+                    disabled={isProcessing || isUnlocking || isCreatingVault}
                     className="w-full"
                   >
-                    {(isUnlocking || isCreatingVault) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {(isProcessing || isUnlocking || isCreatingVault) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     {mode === 'login' ? t('auth.login.button') : t('auth.register.button')}
                   </Button>
                   
@@ -267,8 +325,11 @@ export default function Auth() {
                       onClick={() => {
                         setMode('register')
                         setError('')
+                        setPassword('')
+                        setConfirmPassword('')
                       }}
                       className="text-sm text-bazari-gold hover:text-bazari-gold/80"
+                      disabled={isProcessing}
                     >
                       {t('auth.login.noAccount')}
                     </button>
@@ -366,7 +427,10 @@ export default function Auth() {
                 <CardFooter className="flex space-x-3">
                   <Button
                     variant="outline"
-                    onClick={() => setStep('initial')}
+                    onClick={() => {
+                      setStep('initial')
+                      setError('')
+                    }}
                     className="flex-1"
                   >
                     {t('common.back')}
@@ -461,18 +525,28 @@ export default function Auth() {
                 <CardFooter className="flex space-x-3">
                   <Button
                     variant="outline"
-                    onClick={() => setStep('backup-seed')}
+                    onClick={() => {
+                      setStep('backup-seed')
+                      setError('')
+                    }}
                     className="flex-1"
+                    disabled={isProcessing}
                   >
                     {t('common.back')}
                   </Button>
                   <Button
                     onClick={handleAcceptTerms}
-                    disabled={!termsAccepted || isCreatingVault}
-                    className="flex-1"
+                    disabled={!termsAccepted || isProcessing || isCreatingVault}
+                    className="w-full bg-bazari-red hover:bg-bazari-red/80"
                   >
-                    {isCreatingVault && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    {t('auth.register.complete')}
+                    {isProcessing || isCreatingVault ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Criando carteira...
+                      </>
+                    ) : (
+                      t('auth.register.complete')
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
@@ -498,6 +572,9 @@ export default function Auth() {
                     <p className="text-bazari-sand/60">
                       {t('auth.success.description')}
                     </p>
+                    <div className="mt-4">
+                      <Loader2 className="w-6 h-6 animate-spin text-bazari-gold mx-auto" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -27,7 +27,16 @@
     "theme": "Theme",
     "dark": "Dark",
     "light": "Light",
-    "system": "System"
+    "system": "System",
+    "optional": "Optional",
+    "logout": "Logout",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "send": "Send",
+    "receive": "Receive",
+    "manage": "Manage",
+    "viewAll": "View All"
   },
   "hero": {
     "title": "Welcome to Bazari Digital Nation",
@@ -217,6 +226,33 @@
       "addressRequired": "Address is required",
       "amountRequired": "Amount is required",
       "insufficientBalance": "Insufficient balance"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back",
+    "activeAccount": "Active Account",
+    "totalBalance": "Total Balance",
+    "transactions": "Transactions",
+    "cashback": "LIVO (Cashback)",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions",
+    "noTransactions": "No transactions yet",
+    "startTransacting": "Start sending or receiving tokens",
+    "viewAllTransactions": "View All Transactions",
+    "sendTokens": "Send {{token}}",
+    "manageWallet": "Manage Wallet",
+    "stats": {
+      "totalBalance": "Total Balance",
+      "transactions": "Transactions",
+      "sent": "Sent",
+      "received": "Received"
+    },
+    "actions": {
+      "marketplace": "Marketplace",
+      "subdaos": "SubDAOs",
+      "p2p": "P2P/Exchange",
+      "profile": "My Profile"
     }
   }
 }

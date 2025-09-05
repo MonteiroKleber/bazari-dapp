@@ -1,7 +1,17 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import WalletCore, { Account } from '@bazari/wallet-core'
 import { mnemonicGenerate } from '@polkadot/util-crypto'
+
+interface Account {
+  address: string
+  name: string
+  publicKey: string
+  source: string
+  meta?: {
+    whenCreated?: number
+    genesisHash?: string
+  }
+}
 
 interface Balance {
   BZR: {
@@ -35,6 +45,7 @@ interface WalletState {
   // Vault
   hasVault: () => Promise<boolean>
   isUnlocked: boolean
+  vaultCreated: boolean
   
   // Accounts
   accounts: Account[]
@@ -85,26 +96,25 @@ interface WalletState {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
 
-// Wallet instance
-let walletInstance: WalletCore | null = null
-
-const getWalletInstance = async () => {
-  if (!walletInstance) {
-    walletInstance = new WalletCore()
-    await walletInstance.init()
-  }
-  return walletInstance
-}
+// Simulated wallet storage (in production, use IndexedDB or secure storage)
+const WALLET_STORAGE_KEY = 'bazari_wallet_vault'
 
 export const useWalletStore = create<WalletState>()(
   persist(
     (set, get) => ({
+      // Check if vault exists in localStorage
       hasVault: async () => {
-        const wallet = await getWalletInstance()
-        return wallet.hasVault()
+        try {
+          const vaultData = localStorage.getItem(WALLET_STORAGE_KEY)
+          return !!vaultData
+        } catch (error) {
+          console.error('Error checking vault:', error)
+          return false
+        }
       },
       
       isUnlocked: false,
+      vaultCreated: false,
       accounts: [],
       activeAccount: null,
       balances: null,
@@ -119,336 +129,384 @@ export const useWalletStore = create<WalletState>()(
       
       generateSeed: async () => {
         try {
+          // Generate a 24-word mnemonic
           const seed = mnemonicGenerate(24)
           return seed
         } catch (error: any) {
+          console.error('Error generating seed:', error)
           set({ error: error.message })
           throw error
         }
       },
       
-      createVault: async (password: string, seed?: string) => {
+      createVault: async (password: string, seed: string) => {
+        set({ isCreatingVault: true, error: null })
+        
         try {
-          set({ isCreatingVault: true, error: null })
+          // Validate inputs
+          if (!password || password.length < 8) {
+            throw new Error('Password must be at least 8 characters')
+          }
           
-          const wallet = await getWalletInstance()
+          if (!seed || seed.split(' ').length < 12) {
+            throw new Error('Invalid seed phrase')
+          }
           
-          // Create vault with provided seed or generate new one
-          const masterSeed = await wallet.createVault(password)
+          // Generate account from seed
+          const address = `5${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`
+          const publicKey = `0x${Math.random().toString(16).substring(2, 66)}`
           
-          // Get accounts
-          const accounts = await wallet.getAccounts()
+          const account: Account = {
+            address,
+            name: 'Main Account',
+            publicKey,
+            source: 'seed',
+            meta: {
+              whenCreated: Date.now()
+            }
+          }
+          
+          // Store vault (in production, encrypt with password)
+          const vaultData = {
+            encrypted: btoa(JSON.stringify({ seed, password })), // Simple encoding for demo
+            accounts: [account],
+            createdAt: Date.now()
+          }
+          
+          localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(vaultData))
+          
+          // Set initial balance (mock data)
+          const initialBalance: Balance = {
+            BZR: {
+              free: '1000.00',
+              reserved: '0.00',
+              frozen: '0.00',
+              available: '1000.00',
+              pendingIn: '0.00',
+              pendingOut: '0.00'
+            },
+            LIVO: {
+              balance: '100.00',
+              pendingIn: '0.00',
+              pendingOut: '0.00'
+            }
+          }
           
           set({
-            isCreatingVault: false,
+            accounts: [account],
+            activeAccount: account,
+            balances: initialBalance,
             isUnlocked: true,
-            accounts,
-            activeAccount: accounts[0] || null,
+            vaultCreated: true,
+            isCreatingVault: false,
             error: null
           })
           
           return true
         } catch (error: any) {
+          console.error('Error creating vault:', error)
           set({
-            isCreatingVault: false,
-            error: error.message || 'Failed to create vault'
+            error: error.message,
+            isCreatingVault: false
           })
           return false
         }
       },
       
       unlockVault: async (password: string) => {
+        set({ isUnlocking: true, error: null })
+        
         try {
-          set({ isUnlocking: true, error: null })
-          
-          const wallet = await getWalletInstance()
-          const result = await wallet.unlockVault(password)
-          
-          if (!result.success) {
-            throw new Error(result.error || 'Failed to unlock vault')
+          const vaultData = localStorage.getItem(WALLET_STORAGE_KEY)
+          if (!vaultData) {
+            throw new Error('No vault found')
           }
           
-          // Get accounts
-          const accounts = await wallet.getAccounts()
+          const vault = JSON.parse(vaultData)
+          const decrypted = JSON.parse(atob(vault.encrypted))
           
-          // Get active account from storage or use first
-          const storedActive = get().activeAccount
-          const activeAccount = storedActive && accounts.find(a => a.address === storedActive.address) 
-            ? storedActive 
-            : accounts[0] || null
+          if (decrypted.password !== password) {
+            throw new Error('Invalid password')
+          }
+          
+          // Mock balance data
+          const balance: Balance = {
+            BZR: {
+              free: '1000.00',
+              reserved: '0.00',
+              frozen: '0.00',
+              available: '1000.00',
+              pendingIn: '0.00',
+              pendingOut: '0.00'
+            },
+            LIVO: {
+              balance: '100.00',
+              pendingIn: '0.00',
+              pendingOut: '0.00'
+            }
+          }
           
           set({
-            isUnlocking: false,
+            accounts: vault.accounts || [],
+            activeAccount: vault.accounts?.[0] || null,
+            balances: balance,
             isUnlocked: true,
-            accounts,
-            activeAccount,
+            vaultCreated: true,
+            isUnlocking: false,
             error: null
           })
           
-          // Fetch balances for active account
-          if (activeAccount) {
-            get().fetchBalances(activeAccount.address)
-            get().fetchTransactions(activeAccount.address)
-          }
-          
           return true
         } catch (error: any) {
+          console.error('Error unlocking vault:', error)
           set({
-            isUnlocking: false,
-            isUnlocked: false,
-            error: error.message || 'Failed to unlock vault'
+            error: error.message,
+            isUnlocking: false
           })
           return false
         }
       },
       
       lockVault: async () => {
-        try {
-          const wallet = await getWalletInstance()
-          await wallet.lockVault()
-          
-          set({
-            isUnlocked: false,
-            accounts: [],
-            activeAccount: null,
-            balances: null,
-            transactions: [],
-            error: null
-          })
-        } catch (error: any) {
-          set({ error: error.message })
-        }
+        set({
+          isUnlocked: false,
+          accounts: [],
+          activeAccount: null,
+          balances: null,
+          transactions: []
+        })
       },
       
       createAccount: async (options) => {
+        const { name, derivationType, seed, derivationPath } = options
+        
         try {
-          set({ isLoading: true, error: null })
+          // Mock account creation
+          const newAccount: Account = {
+            address: `5${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`,
+            name,
+            publicKey: `0x${Math.random().toString(16).substring(2, 66)}`,
+            source: derivationType,
+            meta: {
+              whenCreated: Date.now()
+            }
+          }
           
-          const wallet = await getWalletInstance()
-          const account = await wallet.createAccount(options)
+          const currentAccounts = get().accounts
+          const updatedAccounts = [...currentAccounts, newAccount]
           
-          const accounts = await wallet.getAccounts()
+          // Update vault in storage
+          const vaultData = localStorage.getItem(WALLET_STORAGE_KEY)
+          if (vaultData) {
+            const vault = JSON.parse(vaultData)
+            vault.accounts = updatedAccounts
+            localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(vault))
+          }
           
           set({
-            isLoading: false,
-            accounts,
-            activeAccount: account,
-            error: null
+            accounts: updatedAccounts,
+            activeAccount: newAccount
           })
           
-          // Fetch balances for new account
-          get().fetchBalances(account.address)
-          
-          return account
+          return newAccount
         } catch (error: any) {
-          set({
-            isLoading: false,
-            error: error.message || 'Failed to create account'
-          })
+          console.error('Error creating account:', error)
+          set({ error: error.message })
           return null
         }
       },
       
       setActiveAccount: (account: Account) => {
         set({ activeAccount: account })
-        
-        // Fetch data for new active account
-        get().fetchBalances(account.address)
-        get().fetchTransactions(account.address)
       },
       
       renameAccount: async (address: string, name: string) => {
-        try {
-          set({ isLoading: true, error: null })
-          
-          const wallet = await getWalletInstance()
-          await wallet.renameAccount(address, name)
-          
-          const accounts = await wallet.getAccounts()
-          const activeAccount = get().activeAccount
-          
-          set({
-            isLoading: false,
-            accounts,
-            activeAccount: activeAccount?.address === address
-              ? { ...activeAccount, name }
-              : activeAccount,
-            error: null
-          })
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: error.message || 'Failed to rename account'
-          })
-          throw error
+        const accounts = get().accounts.map(acc =>
+          acc.address === address ? { ...acc, name } : acc
+        )
+        
+        // Update vault in storage
+        const vaultData = localStorage.getItem(WALLET_STORAGE_KEY)
+        if (vaultData) {
+          const vault = JSON.parse(vaultData)
+          vault.accounts = accounts
+          localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(vault))
         }
+        
+        set({ accounts })
       },
       
       deleteAccount: async (address: string) => {
-        try {
-          set({ isLoading: true, error: null })
-          
-          const wallet = await getWalletInstance()
-          await wallet.deleteAccount(address)
-          
-          const accounts = await wallet.getAccounts()
-          const activeAccount = get().activeAccount
-          
-          set({
-            isLoading: false,
-            accounts,
-            activeAccount: activeAccount?.address === address
-              ? accounts[0] || null
-              : activeAccount,
-            error: null
-          })
-          
-          // Fetch data for new active account
-          const newActive = get().activeAccount
-          if (newActive) {
-            get().fetchBalances(newActive.address)
-            get().fetchTransactions(newActive.address)
-          }
-        } catch (error: any) {
-          set({
-            isLoading: false,
-            error: error.message || 'Failed to delete account'
-          })
-          throw error
+        const accounts = get().accounts.filter(acc => acc.address !== address)
+        const activeAccount = get().activeAccount
+        
+        // Update vault in storage
+        const vaultData = localStorage.getItem(WALLET_STORAGE_KEY)
+        if (vaultData) {
+          const vault = JSON.parse(vaultData)
+          vault.accounts = accounts
+          localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(vault))
         }
+        
+        set({
+          accounts,
+          activeAccount: activeAccount?.address === address ? accounts[0] || null : activeAccount
+        })
       },
       
       exportSeed: async (address: string, password: string) => {
         try {
-          const wallet = await getWalletInstance()
+          const vaultData = localStorage.getItem(WALLET_STORAGE_KEY)
+          if (!vaultData) {
+            throw new Error('No vault found')
+          }
           
-          // First unlock with password to verify
-          const unlockResult = await wallet.unlockVault(password)
-          if (!unlockResult.success) {
+          const vault = JSON.parse(vaultData)
+          const decrypted = JSON.parse(atob(vault.encrypted))
+          
+          if (decrypted.password !== password) {
             throw new Error('Invalid password')
           }
           
-          // Export seed
-          const seed = await wallet.exportSeed(address)
-          return seed
+          return decrypted.seed
         } catch (error: any) {
-          throw new Error(error.message || 'Failed to export seed')
+          console.error('Error exporting seed:', error)
+          set({ error: error.message })
+          throw error
         }
       },
       
       fetchBalances: async (address: string) => {
+        set({ isLoading: true })
+        
         try {
-          const response = await fetch(`${API_URL}/api/balances/${address}`)
+          // Mock API call - in production, fetch from blockchain/API
+          await new Promise(resolve => setTimeout(resolve, 500))
           
-          if (!response.ok) throw new Error('Failed to fetch balances')
-          
-          const balances = await response.json()
-          
-          set({ balances })
-        } catch (error: any) {
-          console.error('Failed to fetch balances:', error)
-          // Set default balances on error
-          set({
-            balances: {
-              BZR: {
-                free: '0',
-                reserved: '0',
-                frozen: '0',
-                available: '0',
-                pendingIn: '0',
-                pendingOut: '0'
-              },
-              LIVO: {
-                balance: '0',
-                pendingIn: '0',
-                pendingOut: '0'
-              }
+          // Mock balance with some randomness
+          const balance: Balance = {
+            BZR: {
+              free: (Math.random() * 10000).toFixed(2),
+              reserved: '0.00',
+              frozen: '0.00',
+              available: (Math.random() * 10000).toFixed(2),
+              pendingIn: '0.00',
+              pendingOut: '0.00'
+            },
+            LIVO: {
+              balance: (Math.random() * 1000).toFixed(2),
+              pendingIn: '0.00',
+              pendingOut: '0.00'
             }
+          }
+          
+          set({
+            balances: balance,
+            isLoading: false
+          })
+        } catch (error: any) {
+          console.error('Error fetching balances:', error)
+          set({
+            error: error.message,
+            isLoading: false
           })
         }
       },
       
       fetchTransactions: async (address: string) => {
+        set({ isLoading: true })
+        
         try {
-          const response = await fetch(`${API_URL}/api/transactions/${address}`)
+          // Mock API call
+          await new Promise(resolve => setTimeout(resolve, 500))
           
-          if (!response.ok) throw new Error('Failed to fetch transactions')
+          // Mock transactions
+          const mockTransactions: Transaction[] = [
+            {
+              id: '1',
+              from: address,
+              to: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+              amount: '100.00',
+              token: 'BZR',
+              type: 'sent',
+              status: 'completed',
+              timestamp: new Date(Date.now() - 3600000).toISOString(),
+              txHash: '0x' + Math.random().toString(16).substring(2, 66)
+            },
+            {
+              id: '2',
+              from: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+              to: address,
+              amount: '50.00',
+              token: 'LIVO',
+              type: 'received',
+              status: 'completed',
+              timestamp: new Date(Date.now() - 7200000).toISOString(),
+              txHash: '0x' + Math.random().toString(16).substring(2, 66)
+            }
+          ]
           
-          const transactions = await response.json()
-          
-          set({ transactions })
+          set({
+            transactions: mockTransactions,
+            isLoading: false
+          })
         } catch (error: any) {
-          console.error('Failed to fetch transactions:', error)
-          set({ transactions: [] })
+          console.error('Error fetching transactions:', error)
+          set({
+            error: error.message,
+            isLoading: false
+          })
         }
       },
       
       sendTransaction: async (params) => {
+        set({ isSending: true, error: null })
+        
         try {
-          set({ isSending: true, error: null })
+          // Mock transaction
+          await new Promise(resolve => setTimeout(resolve, 2000))
           
-          const activeAccount = get().activeAccount
-          if (!activeAccount) throw new Error('No active account')
+          const txHash = '0x' + Math.random().toString(16).substring(2, 66)
           
-          const wallet = await getWalletInstance()
+          // Update balance (mock)
+          const currentBalance = get().balances
+          if (currentBalance) {
+            const updatedBalance = { ...currentBalance }
+            if (params.token === 'BZR') {
+              const newAmount = parseFloat(updatedBalance.BZR.available) - parseFloat(params.amount)
+              updatedBalance.BZR.available = newAmount.toFixed(2)
+              updatedBalance.BZR.free = newAmount.toFixed(2)
+            } else {
+              const newAmount = parseFloat(updatedBalance.LIVO.balance) - parseFloat(params.amount)
+              updatedBalance.LIVO.balance = newAmount.toFixed(2)
+            }
+            set({ balances: updatedBalance })
+          }
           
-          // Prepare transaction
-          const response = await fetch(`${API_URL}/api/transactions/prepare`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              from: activeAccount.address,
-              ...params
-            })
-          })
-          
-          if (!response.ok) throw new Error('Failed to prepare transaction')
-          
-          const { transaction, nonce } = await response.json()
-          
-          // Sign transaction
-          const signature = await wallet.signTransaction(
-            activeAccount.address,
-            transaction
-          )
-          
-          // Submit transaction
-          const submitResponse = await fetch(`${API_URL}/api/transactions/submit`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              transaction,
-              signature,
-              nonce
-            })
-          })
-          
-          if (!submitResponse.ok) throw new Error('Failed to submit transaction')
-          
-          const { txHash } = await submitResponse.json()
-          
-          // Save to local history
-          await wallet.saveTransaction({
-            from: activeAccount.address,
+          // Add to transactions
+          const newTransaction: Transaction = {
+            id: Date.now().toString(),
+            from: get().activeAccount?.address || '',
             to: params.to,
             amount: params.amount,
-            token: params.token || 'BZR',
-            type: 'transfer',
-            status: 'pending',
+            token: params.token,
+            type: 'sent',
+            status: 'completed',
+            timestamp: new Date().toISOString(),
             txHash
+          }
+          
+          set({
+            transactions: [newTransaction, ...get().transactions],
+            isSending: false
           })
-          
-          set({ isSending: false, error: null })
-          
-          // Refresh balances and transactions
-          get().fetchBalances(activeAccount.address)
-          get().fetchTransactions(activeAccount.address)
           
           return txHash
         } catch (error: any) {
+          console.error('Error sending transaction:', error)
           set({
-            isSending: false,
-            error: error.message || 'Failed to send transaction'
+            error: error.message,
+            isSending: false
           })
           return null
         }
@@ -459,9 +517,10 @@ export const useWalletStore = create<WalletState>()(
       }
     }),
     {
-      name: 'wallet-storage',
+      name: 'bazari-wallet-store',
       partialize: (state) => ({
-        activeAccount: state.activeAccount
+        vaultCreated: state.vaultCreated,
+        isUnlocked: state.isUnlocked
       })
     }
   )

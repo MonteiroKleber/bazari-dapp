@@ -95,12 +95,18 @@ export default function Landing() {
                 <option value="es-ES" className="bg-bazari-black">🇪🇸 ES</option>
               </select>
               
-              <button className="px-4 py-2 text-bazari-gold hover:text-bazari-sand transition-colors">
+              <Link 
+                to="/auth" 
+                className="px-4 py-2 text-bazari-gold hover:text-bazari-sand transition-colors"
+              >
                 {t('nav.login')}
-              </button>
-              <button className="px-4 py-2 bg-bazari-red text-white rounded-xl hover:bg-bazari-red/80 transition-all hover:shadow-lg">
+              </Link>
+              <Link 
+                to="/auth" 
+                className="px-4 py-2 bg-bazari-red text-white rounded-xl hover:bg-bazari-red/80 transition-all hover:shadow-lg"
+              >
                 {t('nav.register')}
-              </button>
+              </Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -126,12 +132,20 @@ export default function Landing() {
               <a href="#economics" className="block hover:text-bazari-gold transition-colors">{t('nav.economics')}</a>
               <a href="#docs" className="block hover:text-bazari-gold transition-colors">{t('nav.docs')}</a>
               <div className="pt-4 border-t border-bazari-red/20 space-y-2">
-                <button className="w-full px-4 py-2 text-bazari-gold hover:text-bazari-sand transition-colors">
+                <Link 
+                  to="/auth" 
+                  className="block w-full px-4 py-2 text-bazari-gold hover:text-bazari-sand transition-colors text-center"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   {t('nav.login')}
-                </button>
-                <button className="w-full px-4 py-2 bg-bazari-red text-white rounded-xl hover:bg-bazari-red/80 transition-all">
+                </Link>
+                <Link 
+                  to="/auth" 
+                  className="block w-full px-4 py-2 bg-bazari-red text-white rounded-xl hover:bg-bazari-red/80 transition-all text-center"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   {t('nav.register')}
-                </button>
+                </Link>
               </div>
             </div>
           </motion.div>
@@ -160,14 +174,16 @@ export default function Landing() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-bazari-red text-white rounded-2xl font-semibold text-lg hover:bg-bazari-red/80 transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
-              >
-                <span>{t('hero.cta.getStarted')}</span>
-                <ArrowRight size={20} />
-              </motion.button>
+              <Link to="/auth">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-8 py-4 bg-bazari-red text-white rounded-2xl font-semibold text-lg hover:bg-bazari-red/80 transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                >
+                  <span>{t('hero.cta.getStarted')}</span>
+                  <ArrowRight size={20} />
+                </motion.button>
+              </Link>
               
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -314,13 +330,15 @@ export default function Landing() {
             <p className="text-lg mb-8 text-white/90">
               {t('cta.subtitle')}
             </p>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-white text-bazari-red rounded-2xl font-semibold text-lg hover:bg-white/90 transition-all shadow-xl"
-            >
-              {t('cta.button')}
-            </motion.button>
+            <Link to="/auth">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 bg-white text-bazari-red rounded-2xl font-semibold text-lg hover:bg-white/90 transition-all shadow-xl"
+              >
+                {t('cta.button')}
+              </motion.button>
+            </Link>
           </motion.div>
         </div>
       </section>

@@ -1,11 +1,13 @@
-import { Routes, Route } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
+import { useAuthStore } from '@store/auth'
+import { useWalletStore } from '@store/wallet'
 
 // Importar páginas
 const Landing = lazy(() => import('./pages/Landing'))
 const Auth = lazy(() => import('./pages/Auth'))
 const Wallet = lazy(() => import('./pages/Wallet'))
-
+const Dashboard = lazy(() => import('./pages/Dashboard'))
 
 // Loading component
 function LoadingScreen() {
@@ -16,6 +18,28 @@ function LoadingScreen() {
       </div>
     </div>
   )
+}
+
+// Protected Route Component
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuthStore()
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />
+  }
+  
+  return <>{children}</>
+}
+
+// Auth Route Component (redirects if already authenticated)
+function AuthRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuthStore()
+  
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+  
+  return <>{children}</>
 }
 
 // Páginas placeholder temporárias
@@ -31,20 +55,109 @@ function ComingSoon({ title }: { title: string }) {
 }
 
 export default function App() {
+  const { isAuthenticated } = useAuthStore()
+  const { hasVault } = useWalletStore()
+  
+  // Check vault status on app load
+  useEffect(() => {
+    const checkVault = async () => {
+      const vaultExists = await hasVault()
+      // Logic to handle vault status if needed
+    }
+    checkVault()
+  }, [hasVault])
+  
   return (
     <div className="min-h-screen bg-bazari-black">
       <Suspense fallback={<LoadingScreen />}>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/marketplace" element={<ComingSoon title="Marketplace" />} />
-          <Route path="/dao" element={<ComingSoon title="DAO" />} />
-          <Route path="/studio" element={<ComingSoon title="Studio" />} />
-          <Route path="/p2p" element={<ComingSoon title="P2P" />} />
-          <Route path="/social" element={<ComingSoon title="Social" />} />
-          <Route path="/dashboard" element={<ComingSoon title="Dashboard" />} />
-          <Route path="/profile" element={<ComingSoon title="Profile" />} />
+          
+          {/* Auth Route - redirects to dashboard if authenticated */}
+          <Route 
+            path="/auth" 
+            element={
+              <AuthRoute>
+                <Auth />
+              </AuthRoute>
+            } 
+          />
+          
+          {/* Protected Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/wallet"
+            element={
+              <ProtectedRoute>
+                <Wallet />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/marketplace"
+            element={
+              <ProtectedRoute>
+                <ComingSoon title="Marketplace" />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/dao"
+            element={
+              <ProtectedRoute>
+                <ComingSoon title="DAO" />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/studio"
+            element={
+              <ProtectedRoute>
+                <ComingSoon title="Studio" />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/p2p"
+            element={
+              <ProtectedRoute>
+                <ComingSoon title="P2P" />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/social"
+            element={
+              <ProtectedRoute>
+                <ComingSoon title="Social" />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ComingSoon title="Perfil" />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* 404 Route */}
           <Route 
             path="*" 
             element={

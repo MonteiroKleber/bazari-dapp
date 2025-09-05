@@ -27,7 +27,16 @@
     "theme": "Tema",
     "dark": "Oscuro",
     "light": "Claro",
-    "system": "Sistema"
+    "system": "Sistema",
+    "optional": "Opcional",
+    "logout": "Salir",
+    "settings": "Configuración",
+    "notifications": "Notificaciones",
+    "profile": "Perfil",
+    "send": "Enviar",
+    "receive": "Recibir",
+    "manage": "Gestionar",
+    "viewAll": "Ver Todo"
   },
   "hero": {
     "title": "Bienvenido a la Nación Digital Bazari",
@@ -122,5 +131,128 @@
     "docs": "Documentación",
     "login": "Entrar",
     "register": "Registrar"
+  },
+  "auth": {
+    "login": {
+      "title": "Bienvenido de Vuelta",
+      "description": "Desbloquea tu cartera para continuar",
+      "button": "Desbloquear",
+      "noAccount": "¿No tienes una cuenta? Crea ahora"
+    },
+    "register": {
+      "title": "Crear Nueva Cartera",
+      "description": "Configura tu cartera Bazari en pocos pasos",
+      "button": "Continuar",
+      "complete": "Crear Cartera"
+    },
+    "fields": {
+      "username": "Nombre de usuario",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar contraseña"
+    },
+    "seed": {
+      "title": "Tu Frase de Recuperación",
+      "description": "Anota estas 24 palabras en un lugar seguro. Las necesitarás para recuperar tu cartera.",
+      "phrase": "Frase de Recuperación",
+      "warning": "Nunca compartas tu frase de recuperación. Cualquier persona con acceso a ella puede robar tus fondos.",
+      "confirm": "He guardado mi frase de recuperación de forma segura"
+    },
+    "terms": {
+      "title": "Términos de Uso",
+      "accept": "He leído y acepto los términos de uso y política de privacidad"
+    },
+    "success": {
+      "title": "¡Cartera Creada!",
+      "description": "Redirigiendo a tu cartera..."
+    },
+    "errors": {
+      "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+      "passwordMismatch": "Las contraseñas no coinciden",
+      "seedNotConfirmed": "Por favor, confirma que guardaste tu frase de recuperación",
+      "seedGenerationFailed": "Error al generar la frase de recuperación",
+      "termsNotAccepted": "Debes aceptar los términos de uso",
+      "registrationFailed": "Error en el registro",
+      "passwordRequired": "La contraseña es obligatoria",
+      "loginFailed": "Error al iniciar sesión"
+    }
+  },
+  "wallet": {
+    "title": "Cartera",
+    "activeAccount": "Cuenta Activa",
+    "balance": "Saldo",
+    "reserved": "Reservado",
+    "pendingIn": "Recibiendo",
+    "pendingOut": "Enviando",
+    "native": "Nativo",
+    "send": "Enviar",
+    "receive": "Recibir",
+    "newAccount": "Nueva Cuenta",
+    "exportSeed": "Exportar Seed",
+    "backup": "Respaldo",
+    "security": "Seguridad",
+    "recentTransactions": "Transacciones Recientes",
+    "transactionsDescription": "Tus últimas transacciones de BZR y LIVO",
+    "noTransactions": "Sin transacciones aún",
+    "from": "De",
+    "to": "Para",
+    "amount": "Cantidad",
+    "max": "Máx",
+    "estimatedFee": "Tarifa estimada",
+    "total": "Total",
+    "address": "Dirección",
+    "downloadQR": "Descargar Código QR",
+    "transactionSent": "¡Transacción Enviada!",
+    "txHash": "Hash",
+    "received": "Recibido",
+    "sent": "Enviado",
+    "viewOnExplorer": "Ver en Explorer",
+    "accounts": "Cuentas",
+    "createAccount": "Crear Cuenta",
+    "accountName": "Nombre de Cuenta",
+    "accountNamePlaceholder": "Ej: Cuenta Principal",
+    "accountType": "Tipo de Cuenta",
+    "deriveAccount": "Derivar de Seed Principal",
+    "deriveDescription": "Crea una nueva cuenta desde la seed maestra",
+    "newSeed": "Nueva Seed Separada",
+    "newSeedDescription": "Genera una nueva seed independiente",
+    "importSeed": "Importar Seed",
+    "importDescription": "Importa una seed existente",
+    "derivationPath": "Ruta de Derivación",
+    "seedPhrase": "Frase Seed",
+    "enterSeedPhrase": "Ingresa tu frase de recuperación de 24 palabras",
+    "create": "Crear",
+    "errors": {
+      "addressRequired": "La dirección es obligatoria",
+      "amountRequired": "El monto es obligatorio",
+      "insufficientBalance": "Saldo insuficiente"
+    }
+  },
+  "dashboard": {
+    "title": "Panel",
+    "welcome": "Bienvenido de vuelta",
+    "activeAccount": "Cuenta Activa",
+    "totalBalance": "Saldo Total",
+    "transactions": "Transacciones",
+    "cashback": "LIVO (Cashback)",
+    "recentActivity": "Actividad Reciente",
+    "quickActions": "Acciones Rápidas",
+    "noTransactions": "Sin transacciones aún",
+    "startTransacting": "Comienza enviando o recibiendo tokens",
+    "viewAllTransactions": "Ver Todas las Transacciones",
+    "sendTokens": "Enviar {{token}}",
+    "manageWallet": "Gestionar Cartera",
+    "stats": {
+      "totalBalance": "Saldo Total",
+      "transactions": "Transacciones",
+      "sent": "Enviado",
+      "received": "Recibido"
+    },
+    "actions": {
+      "marketplace": "Marketplace",
+      "subdaos": "SubDAOs",
+      "p2p": "P2P/Cambio",
+      "profile": "Mi Perfil"
+    }
   }
 }

@@ -27,7 +27,16 @@
     "theme": "Tema",
     "dark": "Escuro",
     "light": "Claro",
-    "system": "Sistema"
+    "system": "Sistema",
+    "optional": "Opcional",
+    "logout": "Sair",
+    "settings": "Configurações",
+    "notifications": "Notificações",
+    "profile": "Perfil",
+    "send": "Enviar",
+    "receive": "Receber",
+    "manage": "Gerenciar",
+    "viewAll": "Ver Todos"
   },
   "hero": {
     "title": "Bem-vindo à Nação Digital Bazari",
@@ -217,6 +226,33 @@
       "addressRequired": "Endereço é obrigatório",
       "amountRequired": "Valor é obrigatório",
       "insufficientBalance": "Saldo insuficiente"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Bem-vindo de volta",
+    "activeAccount": "Conta Ativa",
+    "totalBalance": "Saldo Total",
+    "transactions": "Transações",
+    "cashback": "LIVO (Cashback)",
+    "recentActivity": "Atividade Recente",
+    "quickActions": "Ações Rápidas",
+    "noTransactions": "Nenhuma transação ainda",
+    "startTransacting": "Comece enviando ou recebendo tokens",
+    "viewAllTransactions": "Ver Todas as Transações",
+    "sendTokens": "Enviar {{token}}",
+    "manageWallet": "Gerenciar Carteira",
+    "stats": {
+      "totalBalance": "Saldo Total",
+      "transactions": "Transações",
+      "sent": "Enviado",
+      "received": "Recebido"
+    },
+    "actions": {
+      "marketplace": "Marketplace",
+      "subdaos": "SubDAOs",
+      "p2p": "P2P/Câmbio",
+      "profile": "Meu Perfil"
     }
   }
 }
