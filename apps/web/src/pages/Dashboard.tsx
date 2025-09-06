@@ -33,7 +33,6 @@ import { cn } from '@lib/utils'
 
 // Componente de Modal de Envio (integrado com blockchain)
 const SendModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  const { t } = useTranslation()
   const [recipient, setRecipient] = useState('')
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
@@ -65,31 +64,31 @@ const SendModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         className="bg-bazari-black border border-bazari-red/20 rounded-2xl p-6 max-w-md w-full mx-4"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold text-bazari-sand mb-4">{t('transaction.sendBZR')}</h2>
+        <h2 className="text-xl font-bold text-bazari-sand mb-4">Enviar BZR</h2>
         
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
-              {t('transaction.recipientAddress')}
+              Endereço do destinatário
             </label>
             <input
               type="text"
               value={recipient}
               onChange={(e) => setRecipient(e.target.value)}
-              className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent"
-              placeholder={t('wallet.address')}
+              className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
+              placeholder="5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
             />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
-              {t('transaction.amountBZR')}
+              Quantidade
             </label>
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent"
+              className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
               placeholder="0.00"
               step="0.01"
             />
@@ -97,19 +96,18 @@ const SendModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         </div>
         
         <div className="flex gap-3 mt-6">
-          <Button
-            variant="outline"
+          <Button 
+            className="flex-1 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand"
             onClick={onClose}
-            className="flex-1 border-bazari-red/20"
           >
-            {t('common.cancel')}
+            Cancelar
           </Button>
-          <Button
+          <Button 
+            className="flex-1 bg-bazari-red hover:bg-bazari-red/80"
             onClick={handleSend}
             disabled={loading || !recipient || !amount}
-            className="flex-1 bg-bazari-red hover:bg-bazari-red/80"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('common.send')}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enviar'}
           </Button>
         </div>
       </motion.div>
@@ -186,19 +184,21 @@ export default function Dashboard() {
             if (from === activeAccount.address || to.toString() === activeAccount.address) {
               txs.push({
                 hash: ex.hash.toString(),
-                type: to.toString() === activeAccount.address ? 'receive' : 'send',
-                from,
+                type: to.toString() === activeAccount.address ? 'received' : 'sent',
+                amount: Number(amount.toString()) / 1e12,
+                token: 'BZR',
+                from: from.toString(),
                 to: to.toString(),
-                amount: amount.toString(),
-                timestamp: new Date().toISOString(),
-                status: 'confirmed'
+                blockNumber: i,
+                timestamp: new Date().toISOString(), // Aproximado
+                status: 'completed'
               })
             }
           }
         })
       }
       
-      setTransactions(txs.reverse())
+      setTransactions(txs.reverse()) // Mais recentes primeiro
     } catch (error) {
       console.error('Error loading transactions:', error)
     }
@@ -210,43 +210,60 @@ export default function Dashboard() {
   }
   
   const handleCopyAddress = () => {
-    if (activeAccount) {
+    if (activeAccount?.address) {
       copy(activeAccount.address)
     }
   }
   
-  const formatAddress = (address: string) => {
-    if (!address) return ''
-    return `${address.slice(0, 8)}...${address.slice(-8)}`
+  const handleRefreshBalances = () => {
+    loadBalances()
+    loadTransactions()
   }
   
-  const formatBalance = (balance: any) => {
-    if (!balance) return '0.00'
-    const value = parseFloat(balance) / 1e12
-    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+  const formatAddress = (address: string) => {
+    if (!address) return ''
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
+  }
+  
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
   
   return (
     <div className="min-h-screen bg-bazari-black">
       {/* Header */}
-      <header className="bg-gradient-to-r from-bazari-red to-bazari-gold shadow-lg">
+      <header className="border-b border-bazari-red/20 bg-bazari-black/95 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-white">{t('dashboard.title')}</h1>
-              
-              <div className="flex items-center space-x-2 text-sm">
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  isConnected ? "bg-green-500" : "bg-red-500"
-                )} />
-                <span className="text-xs text-bazari-sand/60">
-                  {isConnected ? t('status.connected') : t('status.disconnected')}
-                </span>
+              <div className="w-10 h-10 bg-gradient-to-r from-bazari-red to-bazari-gold rounded-xl flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-bazari-sand">Dashboard Bazari</h1>
+                <p className="text-sm text-bazari-sand/60">
+                  {user?.username || user?.email || 'Usuário'}
+                </p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
+              {/* Status de Conexão */}
+              <div className="flex items-center space-x-2 px-3 py-1 bg-bazari-black/50 rounded-lg border border-bazari-gold/20">
+                <div className={cn(
+                  "w-2 h-2 rounded-full animate-pulse",
+                  isConnected ? "bg-green-500" : "bg-red-500"
+                )} />
+                <span className="text-xs text-bazari-sand/60">
+                  {isConnected ? 'Conectado' : 'Desconectado'}
+                </span>
+              </div>
+              
               <Button
                 variant="ghost"
                 size="icon"
@@ -270,7 +287,7 @@ export default function Dashboard() {
                 className="text-bazari-red hover:text-bazari-red/80 hover:bg-bazari-red/10"
               >
                 <LogOut className="w-4 h-4 mr-2" />
-                {t('actions.exit')}
+                Sair
               </Button>
             </div>
           </div>
@@ -284,7 +301,7 @@ export default function Dashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-bazari-sand">{t('wallet.myMainWallet')}</CardTitle>
+                <CardTitle className="text-bazari-sand">Minha Carteira Principal</CardTitle>
                 <CardDescription className="text-bazari-sand/60">
                   <div className="flex items-center space-x-2 mt-2">
                     <span className="font-mono">{formatAddress(activeAccount?.address || '')}</span>
@@ -295,7 +312,7 @@ export default function Dashboard() {
                       <Copy className="w-4 h-4" />
                     </button>
                     {copiedText && (
-                      <span className="text-xs text-green-500 animate-pulse">{t('common.copied')}</span>
+                      <span className="text-xs text-green-500 animate-pulse">Copiado!</span>
                     )}
                   </div>
                 </CardDescription>
@@ -308,158 +325,279 @@ export default function Dashboard() {
                   onClick={() => setShowBalance(!showBalance)}
                   className="text-bazari-sand/60 hover:text-bazari-gold hover:bg-bazari-gold/10"
                 >
-                  {showBalance ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                  {showBalance ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </Button>
                 
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={loadBalances}
+                  onClick={handleRefreshBalances}
                   disabled={isLoadingBalances}
                   className="text-bazari-sand/60 hover:text-bazari-gold hover:bg-bazari-gold/10"
                 >
-                  <RefreshCw className={cn("w-5 h-5", isLoadingBalances && "animate-spin")} />
+                  {isLoadingBalances ? 
+                    <Loader2 className="w-5 h-5 animate-spin" /> : 
+                    <RefreshCw className="w-5 h-5" />
+                  }
                 </Button>
               </div>
             </div>
           </CardHeader>
           
           <CardContent>
-            {/* Balances Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* BZR Balance */}
+            <div className="grid md:grid-cols-3 gap-4">
+              {/* Saldo BZR */}
               <div className="bg-bazari-black/50 rounded-xl p-4 border border-bazari-red/20">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-bazari-sand/60">BZR</span>
-                  <span className="text-xs bg-bazari-red/20 text-bazari-red px-2 py-1 rounded">{t('wallet.native')}</span>
+                  <span className="text-bazari-sand/60 text-sm">Saldo BZR</span>
+                  <div className="w-8 h-8 bg-bazari-red/20 rounded-lg flex items-center justify-center">
+                    <span className="text-bazari-red text-sm">🔴</span>
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-bazari-sand">
-                  {showBalance ? formatBalance(balances?.BZR?.available || '0') : '••••'}
-                </div>
-                <div className="text-xs text-bazari-sand/50 mt-1">
-                  ≈ $ {showBalance ? '0.00' : '••••'}
-                </div>
+                <p className={cn(
+                  "text-2xl font-bold text-bazari-sand",
+                  !showBalance && "blur-sm select-none"
+                )}>
+                  {showBalance ? 
+                    `${parseFloat(balances?.BZR?.available || '0').toFixed(4)} BZR` : 
+                    '••••••••'
+                  }
+                </p>
+                <p className={cn(
+                  "text-sm text-bazari-sand/50 mt-1",
+                  !showBalance && "blur-sm select-none"
+                )}>
+                  ≈ ${showBalance ? (parseFloat(balances?.BZR?.available || '0') * 0.5).toFixed(2) : '••••'}
+                </p>
               </div>
               
-              {/* LIVO Balance */}
+              {/* Saldo LIVO */}
               <div className="bg-bazari-black/50 rounded-xl p-4 border border-bazari-gold/20">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-bazari-sand/60">LIVO</span>
-                  <span className="text-xs bg-bazari-gold/20 text-bazari-gold px-2 py-1 rounded">{t('dashboard.cashback')}</span>
+                  <span className="text-bazari-sand/60 text-sm">Cashback LIVO</span>
+                  <div className="w-8 h-8 bg-bazari-gold/20 rounded-lg flex items-center justify-center">
+                    <span className="text-bazari-gold text-sm">🟡</span>
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-bazari-sand">
-                  {showBalance ? formatBalance(balances?.LIVO?.balance || '0') : '••••'}
-                </div>
-                <div className="text-xs text-bazari-sand/50 mt-1">
-                  ≈ $ {showBalance ? '0.00' : '••••'}
-                </div>
+                <p className={cn(
+                  "text-2xl font-bold text-bazari-sand",
+                  !showBalance && "blur-sm select-none"
+                )}>
+                  {showBalance ? 
+                    `${parseFloat(balances?.LIVO?.balance || '0').toFixed(2)} LIVO` : 
+                    '••••••••'
+                  }
+                </p>
+                <p className={cn(
+                  "text-sm text-bazari-sand/50 mt-1",
+                  !showBalance && "blur-sm select-none"
+                )}>
+                  ≈ ${showBalance ? (parseFloat(balances?.LIVO?.balance || '0') * 0.1).toFixed(2) : '••••'}
+                </p>
               </div>
               
-              {/* Total Value */}
-              <div className="bg-gradient-to-br from-bazari-red/20 to-bazari-gold/20 rounded-xl p-4 border border-bazari-red/30">
+              {/* Total Portfolio */}
+              <div className="bg-gradient-to-br from-bazari-red/10 to-bazari-gold/10 rounded-xl p-4 border border-bazari-gold/30">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-bazari-sand/60">{t('dashboard.totalBalance')}</span>
-                  <TrendingUp className="w-4 h-4 text-green-500" />
+                  <span className="text-bazari-sand/60 text-sm">Valor Total</span>
+                  <TrendingUp className="w-5 h-5 text-green-500" />
                 </div>
-                <div className="text-2xl font-bold text-bazari-sand">
-                  $ {showBalance ? '0.00' : '••••'}
-                </div>
-                <div className="text-xs text-green-500 mt-1">
-                  +0.00% (24h)
-                </div>
+                <p className={cn(
+                  "text-2xl font-bold text-bazari-sand",
+                  !showBalance && "blur-sm select-none"
+                )}>
+                  {showBalance ? 
+                    `$${(
+                      (parseFloat(balances?.BZR?.available || '0') * 0.5) +
+                      (parseFloat(balances?.LIVO?.balance || '0') * 0.1)
+                    ).toFixed(2)}` : 
+                    '••••••••'
+                  }
+                </p>
+                <p className="text-sm text-green-500 mt-1">
+                  +12.5% ↑
+                </p>
               </div>
             </div>
             
-            {/* Action Buttons */}
-            <div className="flex gap-3 mt-6">
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
               <Button
                 onClick={() => setShowSendModal(true)}
-                className="flex-1 bg-bazari-red hover:bg-bazari-red/80"
+                className="bg-bazari-red hover:bg-bazari-red/80 text-white"
               >
                 <Send className="w-4 h-4 mr-2" />
-                {t('common.send')}
+                Enviar
               </Button>
               
               <Button
                 variant="outline"
-                className="flex-1 border-bazari-gold/30 hover:bg-bazari-gold/10"
+                className="border-bazari-gold/30 hover:bg-bazari-gold/10 text-bazari-sand"
               >
                 <ArrowDownLeft className="w-4 h-4 mr-2" />
-                {t('common.receive')}
+                Receber
               </Button>
               
               <Button
                 variant="outline"
-                onClick={() => navigate('/wallet')}
-                className="flex-1 border-bazari-red/30 hover:bg-bazari-red/10"
+                className="border-bazari-gold/30 hover:bg-bazari-gold/10 text-bazari-sand"
               >
-                <Wallet className="w-4 h-4 mr-2" />
-                {t('common.manage')}
+                <Key className="w-4 h-4 mr-2" />
+                Backup
+              </Button>
+              
+              <Button
+                variant="outline"
+                className="border-bazari-gold/30 hover:bg-bazari-gold/10 text-bazari-sand"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Segurança
               </Button>
             </div>
           </CardContent>
         </Card>
         
-        {/* Recent Transactions */}
+        {/* Grid de Cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {/* Card de Estatísticas */}
+          <Card className="border-bazari-red/20 bg-bazari-black/50">
+            <CardHeader>
+              <CardTitle className="text-bazari-sand text-lg">Atividade Recente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-bazari-sand/60 text-sm">Transações (24h)</span>
+                  <span className="text-bazari-sand font-semibold">12</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-bazari-sand/60 text-sm">Volume (24h)</span>
+                  <span className="text-bazari-sand font-semibold">1,245 BZR</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-bazari-sand/60 text-sm">Taxa Média</span>
+                  <span className="text-bazari-sand font-semibold">0.001 BZR</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Card de Rede */}
+          <Card className="border-bazari-red/20 bg-bazari-black/50">
+            <CardHeader>
+              <CardTitle className="text-bazari-sand text-lg">Status da Rede</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-bazari-sand/60 text-sm">Bloco Atual</span>
+                  <span className="text-bazari-sand font-semibold">#{transactions[0]?.blockNumber || '...'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-bazari-sand/60 text-sm">Validadores</span>
+                  <span className="text-bazari-sand font-semibold">21 ativos</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-bazari-sand/60 text-sm">TPS</span>
+                  <span className="text-bazari-sand font-semibold">~1,000</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Card de Recompensas */}
+          <Card className="border-bazari-gold/20 bg-gradient-to-br from-bazari-black/50 to-bazari-gold/5">
+            <CardHeader>
+              <CardTitle className="text-bazari-sand text-lg">Recompensas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-bazari-sand/60 text-sm">Cashback Acumulado</span>
+                  <span className="text-bazari-gold font-semibold">+2.5 LIVO</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-bazari-sand/60 text-sm">Próximo Resgate</span>
+                  <span className="text-bazari-sand font-semibold">em 3 dias</span>
+                </div>
+                <Button 
+                  size="sm" 
+                  className="w-full mt-2 bg-bazari-gold hover:bg-bazari-gold/80 text-bazari-black"
+                >
+                  Resgatar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Transactions Table */}
         <Card className="border-bazari-red/20 bg-bazari-black/50">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-bazari-sand">{t('dashboard.recentActivity')}</CardTitle>
+              <CardTitle className="text-bazari-sand">Histórico de Transações</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/wallet')}
-                className="text-bazari-gold hover:text-bazari-gold/80"
+                className="text-bazari-sand/60 hover:text-bazari-gold"
               >
-                {t('common.viewAll')}
+                Ver todas
               </Button>
             </div>
           </CardHeader>
           
           <CardContent>
-            {transactions.length === 0 ? (
-              <div className="text-center py-8">
-                <Wallet className="w-12 h-12 text-bazari-sand/30 mx-auto mb-3" />
-                <p className="text-bazari-sand/50">{t('dashboard.noTransactions')}</p>
-                <p className="text-sm text-bazari-sand/30 mt-1">{t('dashboard.startTransacting')}</p>
-              </div>
-            ) : (
+            {transactions.length > 0 ? (
               <div className="space-y-3">
-                {transactions.slice(0, 5).map((tx, index) => (
+                {transactions.slice(0, 5).map((tx) => (
                   <div
                     key={tx.hash}
-                    className="flex items-center justify-between p-3 rounded-lg bg-bazari-black/30 hover:bg-bazari-black/50 transition-colors"
+                    className="flex items-center justify-between p-3 bg-bazari-black/30 rounded-lg border border-bazari-red/10 hover:border-bazari-gold/30 transition-colors"
                   >
                     <div className="flex items-center space-x-3">
-                      {tx.type === 'send' ? (
-                        <ArrowUpRight className="w-5 h-5 text-red-500" />
-                      ) : (
-                        <ArrowDownLeft className="w-5 h-5 text-green-500" />
-                      )}
+                      <div className={cn(
+                        "w-10 h-10 rounded-lg flex items-center justify-center",
+                        tx.type === 'received' ? "bg-green-500/20" : "bg-red-500/20"
+                      )}>
+                        {tx.type === 'received' ? 
+                          <ArrowDownLeft className="w-5 h-5 text-green-500" /> : 
+                          <ArrowUpRight className="w-5 h-5 text-red-500" />
+                        }
+                      </div>
                       
                       <div>
-                        <p className="text-sm font-medium text-bazari-sand">
-                          {tx.type === 'send' ? t('transaction.sent') : t('transaction.received')}
+                        <p className="text-bazari-sand font-medium">
+                          {tx.type === 'received' ? 'Recebido' : 'Enviado'}
                         </p>
                         <p className="text-xs text-bazari-sand/50">
-                          {formatAddress(tx.type === 'send' ? tx.to : tx.from)}
+                          {tx.type === 'received' ? 
+                            `De: ${formatAddress(tx.from)}` : 
+                            `Para: ${formatAddress(tx.to)}`
+                          }
                         </p>
                       </div>
                     </div>
                     
                     <div className="text-right">
                       <p className={cn(
-                        "font-bold",
-                        tx.type === 'send' ? "text-red-500" : "text-green-500"
+                        "font-semibold",
+                        tx.type === 'received' ? "text-green-500" : "text-bazari-sand"
                       )}>
-                        {tx.type === 'send' ? '-' : '+'} {formatBalance(tx.amount)} BZR
+                        {tx.type === 'received' ? '+' : '-'}{tx.amount} {tx.token}
                       </p>
                       <p className="text-xs text-bazari-sand/50">
-                        {new Date(tx.timestamp).toLocaleString('pt-BR')}
+                        {formatDate(tx.timestamp)}
                       </p>
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-bazari-sand/60">Nenhuma transação encontrada</p>
+                <p className="text-sm text-bazari-sand/40 mt-2">
+                  Suas transações aparecerão aqui
+                </p>
               </div>
             )}
           </CardContent>

@@ -1,77 +1,55 @@
 // apps/web/src/App.tsx
-import { useEffect } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useWalletStore } from '@/store/wallet'
-import Landing from '@/pages/Landing'
-import Auth from '@/pages/Auth'
-import Dashboard from '@/pages/Dashboard'
-import Wallet from '@/pages/Wallet'
-import Layout from './components/Layout'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
-import { initializeActivityListeners } from '@/store/wallet'
-import { initializeAuth } from '@/store/auth'
+// Importações lazy para code splitting
+const Landing = lazy(() => import('./pages/Landing'))
+const Auth = lazy(() => import('./pages/Auth'))
+const Wallet = lazy(() => import('./pages/Wallet'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
 
-function App() {
-  const { isInitialized, isLocked, connectBlockchain } = useWalletStore()
-  const location = useLocation()
 
-  useEffect(() => {
-
-    initializeActivityListeners() // Auto-lock
-    initializeAuth() // Session check
-    
-    // Auto-connect to blockchain if wallet is initialized and unlocked
-    const initializeApp = async () => {
-      if (isInitialized && !isLocked) {
-        try {
-          await connectBlockchain()
-        } catch (error) {
-          console.error('Failed to connect to blockchain:', error)
-        }
-      }
-    }
-
-    initializeApp()
-  }, [isInitialized, isLocked, connectBlockchain])
-
-  // Rotas públicas (não precisam de autenticação)
-  const publicRoutes = ['/', '/auth', '/landing']
-  const isPublicRoute = publicRoutes.includes(location.pathname)
-
-  // Se não tem wallet e não está em rota pública, redireciona
-  if (!isInitialized && !isPublicRoute) {
-    return <Navigate to="/" replace />
-  }
-
-  // Se tem wallet mas está bloqueada e não está em rota pública
-  if (isInitialized && isLocked && !isPublicRoute) {
-    return <Navigate to="/auth?mode=unlock" replace />
-  }
-
-  // Se tem wallet desbloqueada e está na landing ou auth, redireciona para dashboard
-  if (isInitialized && !isLocked && (location.pathname === '/' || location.pathname === '/auth')) {
-    return <Navigate to="/dashboard" replace />
-  }
-
-  // Rotas principais
+// Componente de Loading
+function LoadingSpinner() {
+  const { t } = useTranslation()
+  
   return (
-    <Routes>
-      {/* Rotas públicas */}
-      <Route path="/" element={<Landing />} />
-      <Route path="/auth" element={<Auth />} />
-      
-      {/* Rotas protegidas */}
-      {isInitialized && !isLocked ? (
-        <Route element={<Layout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/wallet" element={<Wallet />} />
-        </Route>
-      ) : null}
-      
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <div className="min-h-screen bg-bazari-black flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-bazari-red border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-bazari-sand">{t('common.loading') || 'Carregando...'}</p>
+      </div>
+    </div>
   )
 }
 
-export default App
+export default function App() {
+  const { i18n } = useTranslation()
+
+  // Verificar idioma salvo no localStorage ao montar
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('bazari_language')
+    if (savedLanguage && savedLanguage !== i18n.language) {
+      i18n.changeLanguage(savedLanguage)
+    }
+  }, [i18n])
+
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        {/* Rotas Públicas */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/auth" element={<Auth />} />
+        
+        {/* Rotas Protegidas (adicionar proteção depois) */}
+        <Route path="/wallet" element={<Wallet />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+
+        
+        {/* Rota 404 - Redirecionar para home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  )
+}
