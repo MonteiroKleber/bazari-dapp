@@ -1,36 +1,32 @@
-// apps/api/src/routes/auth.ts
-// Backend Auth Routes com Zero-Knowledge e Cookie-Based Sessions
-// Usando variáveis de ambiente EXISTENTES do projeto
-
 import { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { signatureVerify } from '@polkadot/util-crypto'
-import { hexToU8a, isHex, stringToU8a } from '@polkadot/util'
 import crypto from 'crypto'
+import { hexToU8a, isHex, stringToU8a } from '@polkadot/util'
+import { signatureVerify } from '@polkadot/util-crypto'
 
-// ==================== SCHEMAS ====================
-const nonceSchema = z.object({
-  walletAddress: z.string().min(47).max(48)
-})
-
-const authSchema = z.object({
-  walletAddress: z.string().min(47).max(48),
+// Validation schemas
+const registerSchema = z.object({
+  walletAddress: z.string().min(48).max(48),
   signature: z.string(),
   message: z.string(),
-  username: z.string().optional(),
+  username: z.string().min(3).max(30).optional(),
   email: z.string().email().optional()
 })
 
-// ==================== AUTH ROUTES ====================
+const loginSchema = z.object({
+  walletAddress: z.string().min(48).max(48),
+  signature: z.string(),
+  message: z.string()
+})
+
 const authRoutes: FastifyPluginAsync = async (server) => {
+  // ==================== UTILITY FUNCTIONS ====================
   
-  // Helper: Generate secure nonce
   function generateNonce(): string {
     return crypto.randomBytes(32).toString('hex')
   }
-  
-  // Helper: Verify Polkadot signature
-  async function verifySignature(
+
+  async function verifyPolkadotSignature(
     message: string,
     signature: string,
     address: string
@@ -51,8 +47,7 @@ const authRoutes: FastifyPluginAsync = async (server) => {
       return false
     }
   }
-  
-  // Helper: Validate message structure and domain
+
   function validateMessage(message: string): {
     valid: boolean
     action?: string
@@ -63,12 +58,10 @@ const authRoutes: FastifyPluginAsync = async (server) => {
     try {
       const parsed = JSON.parse(message)
       
-      // Check required fields
       if (!parsed.action || !parsed.nonce || !parsed.timestamp || !parsed.domain) {
         return { valid: false }
       }
       
-      // Check timestamp (5 minute window)
       const messageTime = new Date(parsed.timestamp).getTime()
       const now = Date.now()
       
@@ -77,7 +70,6 @@ const authRoutes: FastifyPluginAsync = async (server) => {
         return { valid: false }
       }
       
-      // Validate domain using CORS_ORIGIN from existing env
       const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || ['http://localhost:5173']
       
       if (!allowedOrigins.includes(parsed.domain)) {
@@ -97,319 +89,152 @@ const authRoutes: FastifyPluginAsync = async (server) => {
       return { valid: false }
     }
   }
-  
-  // Helper: Check and consume nonce (prevent replay)
+
   async function checkNonce(nonce: string): Promise<boolean> {
     const key = `nonce:${nonce}`
-    
-    // Check if nonce exists (already used)
     const exists = await server.redis.get(key)
+    
     if (exists) {
       server.log.warn(`Nonce already used: ${nonce}`)
       return false
     }
     
-    // Mark nonce as used (expire in 5 minutes)
     await server.redis.setex(key, 300, '1')
     return true
   }
-  
-  // Helper: Create session
-  async function createSession(userId: string, walletAddress: string) {
+
+  async function createSession(userId: string, walletAddress: string, reply: any) {
     const sessionId = crypto.randomBytes(32).toString('hex')
     const sessionData = {
       userId,
       walletAddress,
       createdAt: Date.now(),
-      expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+      expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000)
     }
     
-    // Store in Redis
     await server.redis.setex(
       `session:${sessionId}`,
-      7 * 24 * 60 * 60, // 7 days in seconds
+      7 * 24 * 60 * 60,
       JSON.stringify(sessionData)
     )
     
+    reply.setCookie('session', sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60
+    })
+    
     return sessionId
   }
-  
+
   // ==================== ROUTES ====================
   
-  // POST /api/auth/nonce - Generate nonce for signing
-  server.post('/nonce', {
-    schema: {
-      body: nonceSchema
-    }
-  }, async (request, reply) => {
-    try {
-      const { walletAddress } = request.body
-      
-      const nonce = generateNonce()
-      const timestamp = new Date().toISOString()
-      
-      // Store nonce temporarily
-      await server.redis.setex(`nonce:${nonce}`, 300, walletAddress)
-      
-      // Use first origin from CORS_ORIGIN as default domain
-      const defaultDomain = process.env.CORS_ORIGIN?.split(',')[0].trim() || 'http://localhost:5173'
-      
-      const message = JSON.stringify({
-        action: 'auth',
-        nonce,
-        timestamp,
-        domain: defaultDomain
-      })
-      
-      server.log.info(`Nonce generated for ${walletAddress}`)
-      
-      return reply.send({
-        nonce,
-        timestamp,
-        message
-      })
-    } catch (error: any) {
-      server.log.error('Nonce generation error:', error)
-      return reply.code(500).send({
-        error: 'Failed to generate nonce',
-        message: error.message
+  // GET /me - rota que o frontend está pedindo
+  server.get('/me', async (request, reply) => {
+    const sessionId = request.cookies?.session
+    
+    if (!sessionId) {
+      return reply.code(401).send({
+        authenticated: false,
+        message: 'Not authenticated'
       })
     }
+    
+    const sessionData = await server.redis.get(`session:${sessionId}`)
+    
+    if (!sessionData) {
+      return reply.code(401).send({
+        authenticated: false,
+        message: 'Session expired'
+      })
+    }
+    
+    const session = JSON.parse(sessionData)
+    const user = await server.prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        walletAddress: true,
+        username: true,
+        email: true
+      }
+    })
+    
+    return reply.send({
+      authenticated: true,
+      user
+    })
   })
-  
-  // POST /api/auth/register - Register with signature only (NO SEED/PASSWORD!)
-  server.post('/register', {
-    schema: {
-      body: authSchema
-    }
-  }, async (request, reply) => {
+
+  // GET /nonce
+  server.get('/nonce', async (request, reply) => {
+    const nonce = generateNonce()
+    const timestamp = new Date().toISOString()
+    
+    return reply.send({
+      nonce,
+      timestamp,
+      domain: process.env.CORS_ORIGIN?.split(',')[0] || 'http://localhost:5173'
+    })
+  })
+
+  // POST /register
+  server.post('/register', async (request, reply) => {
     try {
-      const { walletAddress, signature, message, username, email } = request.body
+      const body = registerSchema.parse(request.body)
       
-      // 1. Validate message structure and domain
-      const messageValidation = validateMessage(message)
+      const messageValidation = validateMessage(body.message)
       if (!messageValidation.valid || messageValidation.action !== 'register') {
         return reply.code(400).send({
-          error: 'Invalid message',
-          message: 'Message validation failed'
-        })
-      }
-      
-      // 2. Check nonce (prevent replay)
-      const nonceValid = await checkNonce(messageValidation.nonce!)
-      if (!nonceValid) {
-        return reply.code(400).send({
-          error: 'Invalid nonce',
-          message: 'Nonce already used or expired'
-        })
-      }
-      
-      // 3. Verify signature
-      const signatureValid = await verifySignature(message, signature, walletAddress)
-      if (!signatureValid) {
-        return reply.code(401).send({
-          error: 'Invalid signature',
-          message: 'Signature verification failed'
-        })
-      }
-      
-      // 4. Check if user exists
-      const existingUser = await server.prisma.user.findUnique({
-        where: { walletAddress }
-      })
-      
-      if (existingUser) {
-        return reply.code(409).send({
-          error: 'User exists',
-          message: 'Wallet address already registered'
-        })
-      }
-      
-      // 5. Create user (NO seed or password stored!)
-      const user = await server.prisma.user.create({
-        data: {
-          walletAddress,
-          username,
-          email
-          // NO encryptedSeed, salt, iv, authTag!
-        }
-      })
-      
-      // 6. Create session
-      const sessionId = await createSession(user.id, walletAddress)
-      
-      // 7. Set cookie
-      reply.setCookie('session', sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60 // 7 days
-      })
-      
-      server.log.info(`User registered: ${user.id}`)
-      
-      return reply.send({
-        user: {
-          id: user.id,
-          walletAddress: user.walletAddress,
-          username: user.username,
-          email: user.email,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt
-        }
-      })
-    } catch (error: any) {
-      server.log.error('Registration error:', error)
-      return reply.code(500).send({
-        error: 'Registration failed',
-        message: error.message
-      })
-    }
-  })
-  
-  // POST /api/auth/login - Login with signature only (NO PASSWORD!)
-  server.post('/login', {
-    schema: {
-      body: z.object({
-        walletAddress: z.string(),
-        signature: z.string(),
-        message: z.string()
-      })
-    }
-  }, async (request, reply) => {
-    try {
-      const { walletAddress, signature, message } = request.body
-      
-      // 1. Validate message
-      const messageValidation = validateMessage(message)
-      if (!messageValidation.valid || messageValidation.action !== 'login') {
-        return reply.code(400).send({
-          error: 'Invalid message',
-          message: 'Message validation failed'
-        })
-      }
-      
-      // 2. Check nonce
-      const nonceValid = await checkNonce(messageValidation.nonce!)
-      if (!nonceValid) {
-        return reply.code(400).send({
-          error: 'Invalid nonce',
-          message: 'Nonce already used or expired'
-        })
-      }
-      
-      // 3. Verify signature
-      const signatureValid = await verifySignature(message, signature, walletAddress)
-      if (!signatureValid) {
-        return reply.code(401).send({
-          error: 'Invalid signature',
-          message: 'Signature verification failed'
-        })
-      }
-      
-      // 4. Get user
-      const user = await server.prisma.user.findUnique({
-        where: { walletAddress }
-      })
-      
-      if (!user) {
-        return reply.code(404).send({
-          error: 'User not found',
-          message: 'No user with this wallet address'
-        })
-      }
-      
-      // 5. Create session
-      const sessionId = await createSession(user.id, walletAddress)
-      
-      // 6. Set cookie
-      reply.setCookie('session', sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60
-      })
-      
-      server.log.info(`User logged in: ${user.id}`)
-      
-      return reply.send({
-        user: {
-          id: user.id,
-          walletAddress: user.walletAddress,
-          username: user.username,
-          email: user.email,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt
-        }
-      })
-    } catch (error: any) {
-      server.log.error('Login error:', error)
-      return reply.code(500).send({
-        error: 'Login failed',
-        message: error.message
-      })
-    }
-  })
-  
-  // POST /api/auth/import - Import wallet (similar to login)
-  server.post('/import', {
-    schema: {
-      body: z.object({
-        walletAddress: z.string(),
-        signature: z.string(),
-        message: z.string()
-      })
-    }
-  }, async (request, reply) => {
-    try {
-      const { walletAddress, signature, message } = request.body
-      
-      // Same validation as login
-      const messageValidation = validateMessage(message)
-      if (!messageValidation.valid || messageValidation.action !== 'import') {
-        return reply.code(400).send({
-          error: 'Invalid message'
+          error: 'Invalid message format or action'
         })
       }
       
       const nonceValid = await checkNonce(messageValidation.nonce!)
       if (!nonceValid) {
         return reply.code(400).send({
-          error: 'Invalid nonce'
+          error: 'Invalid or expired nonce'
         })
       }
       
-      const signatureValid = await verifySignature(message, signature, walletAddress)
-      if (!signatureValid) {
+      const isValidSignature = await verifyPolkadotSignature(
+        body.message,
+        body.signature,
+        body.walletAddress
+      )
+      
+      if (!isValidSignature) {
         return reply.code(401).send({
           error: 'Invalid signature'
         })
       }
       
-      // Create or get user
-      let user = await server.prisma.user.findUnique({
-        where: { walletAddress }
+      const existingUser = await server.prisma.user.findUnique({
+        where: { walletAddress: body.walletAddress }
       })
       
-      if (!user) {
-        user = await server.prisma.user.create({
-          data: { walletAddress }
+      if (existingUser) {
+        return reply.code(409).send({
+          error: 'Wallet already registered'
         })
       }
       
-      const sessionId = await createSession(user.id, walletAddress)
-      
-      reply.setCookie('session', sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60
+      const user = await server.prisma.user.create({
+        data: {
+          walletAddress: body.walletAddress,
+          username: body.username,
+          email: body.email
+        }
       })
       
-      return reply.send({
+      await createSession(user.id, user.walletAddress, reply)
+      
+      server.log.info(`New user registered: ${user.walletAddress}`)
+      
+      return reply.code(201).send({
+        success: true,
         user: {
           id: user.id,
           walletAddress: user.walletAddress,
@@ -417,148 +242,54 @@ const authRoutes: FastifyPluginAsync = async (server) => {
           email: user.email
         }
       })
-    } catch (error: any) {
-      server.log.error('Import error:', error)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.code(400).send({
+          error: 'Validation error',
+          details: error.errors
+        })
+      }
+      
+      server.log.error('Registration error:', error)
       return reply.code(500).send({
-        error: 'Import failed',
-        message: error.message
+        error: 'Registration failed'
       })
     }
   })
-  
-  // POST /api/auth/logout - Clear session
-  server.post('/logout', async (request, reply) => {
+
+  // POST /login
+  server.post('/login', async (request, reply) => {
     try {
-      const sessionId = request.cookies.session
+      const body = loginSchema.parse(request.body)
       
-      if (sessionId) {
-        // Blacklist session
-        await server.redis.del(`session:${sessionId}`)
-        
-        // Add to blacklist with TTL (using JWT_EXPIRES_IN config)
-        const expiresIn = process.env.JWT_EXPIRES_IN || '7d'
-        const ttl = expiresIn.includes('d') 
-          ? parseInt(expiresIn) * 24 * 60 * 60 
-          : parseInt(expiresIn)
-        
-        await server.redis.setex(
-          `blacklist:${sessionId}`,
-          ttl,
-          '1'
-        )
-      }
-      
-      // Clear cookie
-      reply.setCookie('session', '', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 0 // Expire immediately
-      })
-      
-      server.log.info('User logged out')
-      
-      return reply.send({
-        success: true,
-        message: 'Logged out successfully'
-      })
-    } catch (error: any) {
-      server.log.error('Logout error:', error)
-      return reply.code(500).send({
-        error: 'Logout failed'
-      })
-    }
-  })
-  
-  // POST /api/auth/refresh - Refresh session
-  server.post('/refresh', async (request, reply) => {
-    try {
-      const sessionId = request.cookies.session
-      
-      if (!sessionId) {
-        return reply.code(401).send({
-          error: 'No session'
+      const messageValidation = validateMessage(body.message)
+      if (!messageValidation.valid || messageValidation.action !== 'login') {
+        return reply.code(400).send({
+          error: 'Invalid message format or action'
         })
       }
       
-      // Check blacklist
-      const blacklisted = await server.redis.get(`blacklist:${sessionId}`)
-      if (blacklisted) {
-        return reply.code(401).send({
-          error: 'Session blacklisted'
+      const nonceValid = await checkNonce(messageValidation.nonce!)
+      if (!nonceValid) {
+        return reply.code(400).send({
+          error: 'Invalid or expired nonce'
         })
       }
       
-      // Get session
-      const sessionData = await server.redis.get(`session:${sessionId}`)
-      if (!sessionData) {
+      const isValidSignature = await verifyPolkadotSignature(
+        body.message,
+        body.signature,
+        body.walletAddress
+      )
+      
+      if (!isValidSignature) {
         return reply.code(401).send({
-          error: 'Session expired'
+          error: 'Invalid signature'
         })
       }
       
-      const session = JSON.parse(sessionData)
-      
-      // Create new session
-      const newSessionId = await createSession(session.userId, session.walletAddress)
-      
-      // Invalidate old session
-      await server.redis.del(`session:${sessionId}`)
-      
-      // Set new cookie
-      reply.setCookie('session', newSessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60
-      })
-      
-      return reply.send({
-        success: true,
-        message: 'Session refreshed'
-      })
-    } catch (error: any) {
-      server.log.error('Refresh error:', error)
-      return reply.code(500).send({
-        error: 'Refresh failed'
-      })
-    }
-  })
-  
-  // GET /api/auth/me - Get current user
-  server.get('/me', async (request, reply) => {
-    try {
-      const sessionId = request.cookies.session
-      
-      if (!sessionId) {
-        return reply.code(401).send({
-          error: 'Not authenticated'
-        })
-      }
-      
-      // Check blacklist
-      const blacklisted = await server.redis.get(`blacklist:${sessionId}`)
-      if (blacklisted) {
-        return reply.code(401).send({
-          error: 'Session blacklisted'
-        })
-      }
-      
-      // Get session
-      const sessionData = await server.redis.get(`session:${sessionId}`)
-      if (!sessionData) {
-        return reply.code(401).send({
-          error: 'Session expired'
-        })
-      }
-      
-      const session = JSON.parse(sessionData)
-      
-      // Get user
       const user = await server.prisma.user.findUnique({
-        where: { id: session.userId }
+        where: { walletAddress: body.walletAddress }
       })
       
       if (!user) {
@@ -567,46 +298,128 @@ const authRoutes: FastifyPluginAsync = async (server) => {
         })
       }
       
+      await createSession(user.id, user.walletAddress, reply)
+      
+      await server.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() }
+      })
+      
+      server.log.info(`User logged in: ${user.walletAddress}`)
+      
       return reply.send({
+        success: true,
         user: {
           id: user.id,
           walletAddress: user.walletAddress,
           username: user.username,
-          email: user.email,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt
+          email: user.email
         }
       })
-    } catch (error: any) {
-      server.log.error('Get user error:', error)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.code(400).send({
+          error: 'Validation error',
+          details: error.errors
+        })
+      }
+      
+      server.log.error('Login error:', error)
       return reply.code(500).send({
-        error: 'Failed to get user'
+        error: 'Login failed'
       })
     }
   })
-  
-  // GET /api/auth/verify - Verify session
-  server.get('/verify', async (request, reply) => {
+
+  // POST /logout
+  server.post('/logout', {
+    preHandler: server.authenticate
+  }, async (request, reply) => {
     try {
-      const sessionId = request.cookies.session
+      const sessionId = request.cookies?.session
       
-      if (!sessionId) {
-        return reply.code(401).send({ valid: false })
+      if (sessionId) {
+        await server.redis.del(`session:${sessionId}`)
+        await server.redis.setex(
+          `blacklist:${sessionId}`,
+          7 * 24 * 60 * 60,
+          '1'
+        )
+        reply.clearCookie('session')
       }
       
-      const blacklisted = await server.redis.get(`blacklist:${sessionId}`)
-      if (blacklisted) {
-        return reply.code(401).send({ valid: false })
-      }
+      server.log.info(`User logged out: ${request.user?.walletAddress}`)
       
-      const sessionData = await server.redis.get(`session:${sessionId}`)
-      if (!sessionData) {
-        return reply.code(401).send({ valid: false })
-      }
-      
-      return reply.send({ valid: true })
+      return reply.send({
+        success: true,
+        message: 'Logged out successfully'
+      })
     } catch (error) {
-      return reply.code(401).send({ valid: false })
+      server.log.error('Logout error:', error)
+      return reply.code(500).send({
+        error: 'Logout failed'
+      })
+    }
+  })
+
+  // GET /verify
+  server.get('/verify', {
+    preHandler: server.authenticate
+  }, async (request, reply) => {
+    const user = await server.prisma.user.findUnique({
+      where: { id: request.user?.id },
+      select: {
+        id: true,
+        walletAddress: true,
+        username: true,
+        email: true,
+        createdAt: true,
+        lastLogin: true
+      }
+    })
+    
+    if (!user) {
+      return reply.code(404).send({
+        error: 'User not found'
+      })
+    }
+    
+    return reply.send({
+      authenticated: true,
+      user
+    })
+  })
+
+  // POST /refresh
+  server.post('/refresh', {
+    preHandler: server.authenticate
+  }, async (request, reply) => {
+    try {
+      const oldSessionId = request.cookies?.session
+      const userId = request.user?.id
+      const walletAddress = request.user?.walletAddress
+      
+      if (!oldSessionId || !userId || !walletAddress) {
+        return reply.code(401).send({
+          error: 'Invalid session'
+        })
+      }
+      
+      await server.redis.del(`session:${oldSessionId}`)
+      
+      const newSessionId = await createSession(userId, walletAddress, reply)
+      
+      server.log.info(`Session refreshed for user: ${walletAddress}`)
+      
+      return reply.send({
+        success: true,
+        message: 'Session refreshed'
+      })
+    } catch (error) {
+      server.log.error('Refresh error:', error)
+      return reply.code(500).send({
+        error: 'Failed to refresh session'
+      })
     }
   })
 }
