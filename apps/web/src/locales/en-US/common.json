@@ -149,43 +149,58 @@
   "auth": {
 
 
-    "welcome": "Welcome to Bazari",
-    "chooseHowToContinue": "Choose how to continue",
-    "createProtectionPassword": "Create Protection Password",
-    "thisPasswordWillProtect": "This password will protect your wallet locally",
-    "password": "Password",
-    "confirmPassword": "Confirm Password",
-    "minCharacters": "Minimum {{count}} characters",
-    "enterPasswordAgain": "Enter password again",
-    "yourSeedPhrase": "Your Seed Phrase",
-    "writeDownWords": "Write down these words in order. It's the only way to recover your wallet!",
-    "important": "Important!",
-    "neverShareSeed": "Never share your seed phrase. Anyone with access can steal your funds.",
-    "showWords": "Show words",
-    "hideWords": "Hide words",
-    "confirmSavedSeed": "I confirm that I have written down my seed phrase in a safe place and understand it's my only way to recover the wallet",
-    "verifySeedPhrase": "Verify Seed Phrase",
-    "enterRequestedWords": "Enter the requested words to confirm you saved correctly",
-    "word": "Word",
-    "enterWord": "Enter word #{{number}}",
-    "finalizeCreation": "Finalize Creation",
-    "creatingWallet": "Creating Wallet...",
-    "importing": "Importing...",
-    "unlocking": "Unlocking...",
-    "verifying": "Verifying...",
-    "generating": "Generating...",
-    "importWallet": "Import Wallet",
-    "restoreWalletUsingSeed": "Restore your wallet using seed phrase",
-    "seedPhrase12or24": "Seed Phrase (12 or 24 words)",
-    "newPassword": "New Password",
-    "passwordToProtectLocally": "Password to protect locally",
-    "import": "Import",
-    "enterYourPassword": "Enter your password",
-    "unlock": "Unlock",
-    "securityBadge": "AES-256-GCM Encryption • sr25519",
-    "100web3": "100% Web3 • No intermediaries",
-    "privateKeysNeverLeave": "Your private keys never leave your device",
-    "encryptedLocalStorage": "Encrypted local storage",
+  
+  "welcomeBack": "Welcome back!",
+  "createNewWallet": "Create new wallet",
+  "generateNewSeed": "Generate a new seed phrase",
+  "useExistingSeed": "Use existing seed phrase",
+  "unlockWallet": "Unlock wallet",
+  "accessExistingWallet": "Access existing wallet",
+  "back": "Back",
+  "continue": "Continue",
+  "forgotPassword": "Forgot password? Import with seed phrase",
+  "resetWallet": "Reset wallet",
+  "confirmReset": "Do you want to clear data and import your wallet again?",
+  "confirmResetWallet": "This will erase all local data. Are you sure?",
+
+
+  "welcome": "Welcome to Bazari",
+  "chooseHowToContinue": "Choose how to continue",
+  "createProtectionPassword": "Create Protection Password",
+  "thisPasswordWillProtect": "This password will protect your wallet locally",
+  "password": "Password",
+  "confirmPassword": "Confirm Password",
+  "minCharacters": "Minimum {{count}} characters",
+  "enterPasswordAgain": "Enter password again",
+  "yourSeedPhrase": "Your Seed Phrase",
+  "writeDownWords": "Write down these words in order. It's the only way to recover your wallet!",
+  "important": "Important!",
+  "neverShareSeed": "Never share your seed phrase. Anyone with access can steal your funds.",
+  "showWords": "Show words",
+  "hideWords": "Hide words",
+  "confirmSavedSeed": "I confirm that I have written down my seed phrase in a safe place and understand it's my only way to recover the wallet",
+  "verifySeedPhrase": "Verify Seed Phrase",
+  "enterRequestedWords": "Enter the requested words to confirm you saved correctly",
+  "word": "Word",
+  "enterWord": "Enter word #{{number}}",
+  "finalizeCreation": "Finalize Creation",
+  "creatingWallet": "Creating Wallet...",
+  "importing": "Importing...",
+  "unlocking": "Unlocking...",
+  "verifying": "Verifying...",
+  "generating": "Generating...",
+  "importWallet": "Import Wallet",
+  "restoreWalletUsingSeed": "Restore your wallet using seed phrase",
+  "seedPhrase12or24": "Seed Phrase (12 or 24 words)",
+  "newPassword": "New Password",
+  "passwordToProtectLocally": "Password to protect locally",
+  "import": "Import",
+  "enterYourPassword": "Enter your password",
+  "unlock": "Unlock",
+  "securityBadge": "AES-256-GCM Encryption • sr25519",
+  "100web3": "100% Web3 • No intermediaries",
+  "privateKeysNeverLeave": "Your private keys never leave your device",
+  "encryptedLocalStorage": "Encrypted local storage",
 
 
     "login": {
@@ -219,9 +234,29 @@
     },
     "success": {
       "title": "Wallet Created!",
-      "description": "Redirecting to your wallet..."
+      "description": "Redirecting to your wallet...",
+
+      "walletCreated": "Wallet created successfully! Redirecting...",
+      "walletImported": "Wallet imported successfully!",
+      "walletUnlocked": "Wallet unlocked successfully!"
+
     },
     "errors": {
+
+      "passwordsDontMatch": "Passwords don't match",
+      "confirmSeedFirst": "Please confirm that you saved your seed phrase",
+      "wordsDoNotMatch": "Words don't match. Please check your seed phrase.",
+      "enterSeedPhrase": "Please enter the seed phrase",
+      "invalidSeedLength": "Seed phrase must contain 12 or 24 words",
+      "invalidSeedPhrase": "Invalid seed phrase",
+      "incorrectPassword": "Incorrect password. Please try again.",
+      "unlockFailed": "Failed to unlock wallet",
+      "walletDataNotFound": "Wallet data not found or corrupted.",
+      "pleaseImportAgain": "Please import your wallet using the seed phrase.",
+      "walletAlreadyExists": "Wallet already exists",
+      "walletNotFound": "Wallet not found",
+
+
       "passwordTooShort": "Password must be at least 8 characters",
       "passwordMismatch": "Passwords do not match",
       "seedNotConfirmed": "Please confirm you saved your recovery phrase",
@@ -398,3 +433,10 @@
     "seedGenerationError": "Error generating seed phrase"
   }
 }
+
+
+
+
+
+
+

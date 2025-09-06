@@ -3,6 +3,7 @@
 // ✅ PBKDF2 com 310.000 iterações
 // ✅ Auto-lock por inatividade
 // ✅ Seed NUNCA sai do dispositivo
+// ✅ CORREÇÃO: Persist configurado corretamente
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -81,66 +82,66 @@ class SecurityManager {
   }
   
   /**
-   * Encrypt data using AES-GCM with authentication
+   * Encrypt seed with AES-GCM
    */
-  static async encrypt(
-    data: string, 
+  private static async encryptSeed(
+    seed: string, 
     password: string
-  ): Promise<{
-    encrypted: string
-    salt: string
-    iv: string
-  }> {
+  ): Promise<{ encryptedSeed: string; salt: string; iv: string }> {
     const encoder = new TextEncoder()
-    const dataBuffer = encoder.encode(data)
+    const seedData = encoder.encode(seed)
     
-    // Generate cryptographically secure random salt and IV
-    const salt = crypto.getRandomValues(new Uint8Array(32)) // 256 bits
-    const iv = crypto.getRandomValues(new Uint8Array(12)) // 96 bits for GCM
+    // Generate random salt and IV
+    const salt = crypto.getRandomValues(new Uint8Array(32))
+    const iv = crypto.getRandomValues(new Uint8Array(12))
     
     // Derive key
     const key = await this.deriveKey(password, salt)
     
-    // Encrypt with AES-GCM (provides authentication)
-    const encrypted = await crypto.subtle.encrypt(
+    // Encrypt
+    const encryptedBuffer = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv },
       key,
-      dataBuffer
+      seedData
     )
     
     return {
-      encrypted: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
-      salt: btoa(String.fromCharCode(...salt)),
-      iv: btoa(String.fromCharCode(...iv))
+      encryptedSeed: u8aToHex(new Uint8Array(encryptedBuffer)),
+      salt: u8aToHex(salt),
+      iv: u8aToHex(iv)
     }
   }
   
   /**
-   * Decrypt data using AES-GCM
+   * Decrypt seed with AES-GCM
    */
-  static async decrypt(
-    encryptedData: string,
+  private static async decryptSeed(
+    encryptedSeed: string,
     password: string,
     salt: string,
     iv: string
   ): Promise<string> {
-    // Convert from base64
-    const encryptedBuffer = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0))
-    const saltBuffer = Uint8Array.from(atob(salt), c => c.charCodeAt(0))
-    const ivBuffer = Uint8Array.from(atob(iv), c => c.charCodeAt(0))
-    
-    // Derive key
-    const key = await this.deriveKey(password, saltBuffer)
-    
-    // Decrypt
-    const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: ivBuffer },
-      key,
-      encryptedBuffer
-    )
-    
-    const decoder = new TextDecoder()
-    return decoder.decode(decrypted)
+    try {
+      const encryptedBuffer = hexToU8a(encryptedSeed)
+      const saltBuffer = hexToU8a(salt)
+      const ivBuffer = hexToU8a(iv)
+      
+      // Derive key
+      const key = await this.deriveKey(password, saltBuffer)
+      
+      // Decrypt
+      const decryptedBuffer = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: ivBuffer },
+        key,
+        encryptedBuffer
+      )
+      
+      const decoder = new TextDecoder()
+      return decoder.decode(decryptedBuffer)
+    } catch (error) {
+      console.error('Decryption failed:', error)
+      throw new Error('Failed to decrypt wallet. Incorrect password.')
+    }
   }
   
   /**
@@ -155,40 +156,30 @@ class SecurityManager {
   }> {
     await this.initializeKeyring()
     
-    // Generate cryptographically secure mnemonic
+    // Generate new mnemonic
     const mnemonic = mnemonicGenerate(12)
+    console.log('🔑 Generated new 12-word mnemonic')
     
-    // Validate mnemonic
-    if (!mnemonicValidate(mnemonic)) {
-      throw new Error('Invalid mnemonic generated')
-    }
-    
-    const pair = this.keyring!.addFromUri(mnemonic)
-    
-    // Encrypt mnemonic with enhanced security
-    const encrypted = await this.encrypt(mnemonic, password)
-    
-    // Store current pair (in memory only)
+    // Create keypair
+    const pair = this.keyring!.addFromMnemonic(mnemonic)
     this.currentPair = pair
     
-    console.log('✅ Wallet created with zero-knowledge architecture')
+    // Encrypt mnemonic
+    const encrypted = await this.encryptSeed(mnemonic, password)
+    
+    console.log('✅ Account created and encrypted:', pair.address)
     
     return {
-      mnemonic, // Return once for user to save, then wipe
+      mnemonic,
       address: pair.address,
-      encryptedSeed: encrypted.encrypted,
-      salt: encrypted.salt,
-      iv: encrypted.iv
+      ...encrypted
     }
   }
   
   /**
-   * Import existing account
+   * Import existing account from mnemonic
    */
-  static async importAccount(
-    mnemonic: string, 
-    password: string
-  ): Promise<{
+  static async importAccount(mnemonic: string, password: string): Promise<{
     address: string
     encryptedSeed: string
     salt: string
@@ -201,57 +192,67 @@ class SecurityManager {
       throw new Error('Invalid mnemonic phrase')
     }
     
-    const pair = this.keyring!.addFromUri(mnemonic)
+    // Create keypair
+    const pair = this.keyring!.addFromMnemonic(mnemonic)
+    this.currentPair = pair
     
     // Encrypt mnemonic
-    const encrypted = await this.encrypt(mnemonic, password)
+    const encrypted = await this.encryptSeed(mnemonic, password)
     
-    // Store current pair (in memory only)
-    this.currentPair = pair
+    console.log('✅ Account imported and encrypted:', pair.address)
     
     return {
       address: pair.address,
-      encryptedSeed: encrypted.encrypted,
-      salt: encrypted.salt,
-      iv: encrypted.iv
+      ...encrypted
     }
   }
   
   /**
-   * Unlock account with password
+   * Unlock existing account
+   * CORREÇÃO: Melhor validação e mensagens de erro
    */
   static async unlockAccount(
-    encryptedSeed: string,
     password: string,
-    salt: string,
-    iv: string
-  ): Promise<KeyringPair> {
-    await this.initializeKeyring()
-    
-    // Decrypt seed
-    const seed = await this.decrypt(encryptedSeed, password, salt, iv)
-    
-    // Validate decrypted seed
-    if (!mnemonicValidate(seed)) {
-      throw new Error('Invalid decrypted seed')
+    encryptedSeed: string | null,
+    salt: string | null,
+    iv: string | null
+  ): Promise<{ address: string }> {
+    // Validar dados primeiro
+    if (!encryptedSeed || !salt || !iv) {
+      throw new Error('Wallet data not found. Please import your wallet or create a new one.')
     }
     
-    // Create pair
-    const pair = this.keyring!.addFromUri(seed)
+    await this.initializeKeyring()
     
-    // Store current pair (in memory only)
-    this.currentPair = pair
-    
-    // Clear seed from memory after use
-    seed.split('').forEach((_, i) => { seed[i] = '\0' })
-    
-    return pair
+    try {
+      // Decrypt mnemonic
+      const mnemonic = await this.decryptSeed(encryptedSeed, password, salt, iv)
+      
+      // Validate decrypted mnemonic
+      if (!mnemonicValidate(mnemonic)) {
+        throw new Error('Decrypted data is not a valid mnemonic')
+      }
+      
+      // Restore keypair
+      const pair = this.keyring!.addFromMnemonic(mnemonic)
+      this.currentPair = pair
+      
+      console.log('🔓 Account unlocked:', pair.address)
+      
+      return { address: pair.address }
+    } catch (error: any) {
+      // Melhor tratamento de erros
+      if (error.message.includes('decrypt') || error.message.includes('Incorrect password')) {
+        throw new Error('Incorrect password')
+      }
+      throw error
+    }
   }
   
   /**
    * Sign message with current account
    */
-  static async signMessage(message: string): Promise<string> {
+  static signMessage(message: string): string {
     if (!this.currentPair) {
       throw new Error('No account unlocked')
     }
@@ -345,8 +346,10 @@ interface WalletState {
   connectBlockchain: () => Promise<void>
   fetchBalances: () => Promise<void>
   resetActivity: () => void
+  clearWallet: () => void
 }
 
+// CORREÇÃO PRINCIPAL: Persist configurado corretamente
 export const useWalletStore = create<WalletState>()(
   persist(
     (set, get) => ({
@@ -439,50 +442,81 @@ export const useWalletStore = create<WalletState>()(
         return { address: result.address }
       },
       
-      // Unlock wallet
+      // Unlock wallet - CORRIGIDO com validação
       unlock: async (password: string) => {
         const state = get()
         
         if (!state.isInitialized) {
-          throw new Error('Wallet not initialized')
+          throw new Error('No wallet found. Please create or import a wallet first.')
         }
         
+        if (!state.isLocked) {
+          console.log('Wallet already unlocked')
+          return
+        }
+        
+        // Validar dados antes de tentar descriptografar
         if (!state.encryptedSeed || !state.salt || !state.iv) {
-          throw new Error('Missing encrypted data')
-        }
-        
-        const pair = await SecurityManager.unlockAccount(
-          state.encryptedSeed,
-          password,
-          state.salt,
-          state.iv
-        )
-        
-        set({
-          isLocked: false,
-          lastActivityAt: Date.now()
-        })
-        
-        // Start auto-lock timer
-        if (get().autoLockEnabled) {
-          SecurityManager.startAutoLockTimer(() => {
-            get().lock()
+          console.error('Missing wallet data:', {
+            hasEncryptedSeed: !!state.encryptedSeed,
+            hasSalt: !!state.salt,
+            hasIv: !!state.iv
           })
+          throw new Error('Wallet data corrupted. Please import your wallet again using your seed phrase.')
         }
         
-        // Connect to blockchain
-        await get().connectBlockchain()
+        try {
+          const result = await SecurityManager.unlockAccount(
+            password,
+            state.encryptedSeed,
+            state.salt,
+            state.iv
+          )
+          
+          // Find matching account
+          const account = state.accounts.find(acc => acc.address === result.address)
+          
+          if (!account) {
+            throw new Error('Account mismatch after unlock')
+          }
+          
+          set({
+            isLocked: false,
+            activeAccount: account,
+            lastActivityAt: Date.now()
+          })
+          
+          // Start auto-lock timer
+          if (get().autoLockEnabled) {
+            SecurityManager.startAutoLockTimer(() => {
+              get().lock()
+            })
+          }
+          
+          // Connect to blockchain
+          await get().connectBlockchain()
+          
+          console.log('✅ Wallet unlocked successfully')
+        } catch (error: any) {
+          console.error('Unlock failed:', error)
+          throw error
+        }
       },
       
-      // Lock wallet
+      // Lock wallet - CORRIGIDO para manter dados criptografados
       lock: () => {
         SecurityManager.lock()
         
-        set({
+        // IMPORTANTE: Mantém os dados criptografados!
+        set((state) => ({
+          ...state,
           isLocked: true,
+          activeAccount: null,
           balances: null,
-          api: get().api // Keep API connection
-        })
+          api: null,
+          isConnected: false
+          // Mantém: isInitialized, accounts, encryptedSeed, salt, iv
+        }))
         
         console.log('🔒 Wallet locked')
       },
@@ -495,8 +529,16 @@ export const useWalletStore = create<WalletState>()(
           throw new Error('Wallet is locked')
         }
         
-        // Reset activity
-        get().resetActivity()
+        if (!state.activeAccount) {
+          throw new Error('No active account')
+        }
+        
+        // Reset activity timer
+        if (state.autoLockEnabled) {
+          SecurityManager.resetAutoLockTimer(() => {
+            get().lock()
+          })
+        }
         
         return SecurityManager.signMessage(message)
       },
@@ -506,49 +548,54 @@ export const useWalletStore = create<WalletState>()(
         const state = get()
         
         if (state.api && state.isConnected) {
-          return // Already connected
+          console.log('Already connected to blockchain')
+          return
         }
         
-        const wsProvider = new WsProvider(
-          import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:9944'
-        )
-        
-        const api = await ApiPromise.create({ provider: wsProvider })
-        
-        await api.isReady
-        
-        set({
-          api,
-          isConnected: true
-        })
-        
-        console.log('✅ Connected to Bazari blockchain')
+        try {
+          const wsProvider = new WsProvider(
+            import.meta.env.VITE_BLOCKCHAIN_WS || 'ws://localhost:9944'
+          )
+          
+          const api = await ApiPromise.create({ provider: wsProvider })
+          await api.isReady
+          
+          set({
+            api,
+            isConnected: true
+          })
+          
+          console.log('✅ Connected to blockchain')
+          
+          // Fetch initial balances
+          await get().fetchBalances()
+        } catch (error) {
+          console.error('Failed to connect to blockchain:', error)
+          set({
+            api: null,
+            isConnected: false
+          })
+        }
       },
       
       // Fetch balances
       fetchBalances: async () => {
         const state = get()
         
-        if (!state.api || !state.activeAccount) {
+        if (!state.api || !state.isConnected || !state.activeAccount) {
           return
         }
         
-        // Reset activity
-        get().resetActivity()
-        
         try {
-          // Fetch BZR balance
           const { data: balance } = await state.api.query.system.account(
             state.activeAccount.address
           ) as any
           
           set({
             balances: {
-              BZR: {
-                available: (balance.free.toBigInt() / BigInt(1e12)).toString(),
-                reserved: (balance.reserved.toBigInt() / BigInt(1e12)).toString(),
-                total: ((balance.free.toBigInt() + balance.reserved.toBigInt()) / BigInt(1e12)).toString()
-              }
+              free: balance.free.toString(),
+              reserved: balance.reserved.toString(),
+              frozen: balance.frozen?.toString() || '0'
             }
           })
         } catch (error) {
@@ -562,15 +609,37 @@ export const useWalletStore = create<WalletState>()(
         
         set({ lastActivityAt: Date.now() })
         
-        if (state.autoLockEnabled && !state.isLocked) {
+        if (!state.isLocked && state.autoLockEnabled) {
           SecurityManager.resetAutoLockTimer(() => {
             get().lock()
           })
         }
+      },
+      
+      // Clear wallet (factory reset)
+      clearWallet: () => {
+        SecurityManager.lock()
+        
+        set({
+          isInitialized: false,
+          isLocked: true,
+          accounts: [],
+          activeAccount: null,
+          encryptedSeed: null,
+          salt: null,
+          iv: null,
+          balances: null,
+          api: null,
+          isConnected: false,
+          lastActivityAt: Date.now()
+        })
+        
+        console.log('🗑️ Wallet data cleared')
       }
     }),
     {
-      name: 'bazari-wallet-store',
+      name: 'wallet-store',
+      // CORREÇÃO PRINCIPAL: Partialize para persistir apenas dados serializáveis
       partialize: (state) => ({
         isInitialized: state.isInitialized,
         isLocked: state.isLocked,
@@ -579,36 +648,10 @@ export const useWalletStore = create<WalletState>()(
         encryptedSeed: state.encryptedSeed,
         salt: state.salt,
         iv: state.iv,
-        autoLockEnabled: state.autoLockEnabled
+        autoLockEnabled: state.autoLockEnabled,
+        lastActivityAt: state.lastActivityAt
+        // NÃO persistir: api, balances, isConnected (reconecta ao unlock)
       })
     }
   )
 )
-
-// Global activity listeners (initialize in App.tsx)
-export function initializeActivityListeners() {
-  const events = ['mousedown', 'keydown', 'touchstart', 'scroll']
-  
-  events.forEach(event => {
-    document.addEventListener(event, () => {
-      const store = useWalletStore.getState()
-      if (!store.isLocked) {
-        store.resetActivity()
-      }
-    }, { passive: true })
-  })
-  
-  // Visibility change listener
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      // Page is hidden, might want to lock immediately for security
-      const store = useWalletStore.getState()
-      if (store.autoLockEnabled && !store.isLocked) {
-        console.log('🔒 Locking wallet - tab hidden')
-        store.lock()
-      }
-    }
-  })
-  
-  console.log('✅ Activity listeners initialized')
-}

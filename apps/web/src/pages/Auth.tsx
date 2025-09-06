@@ -1,6 +1,7 @@
 // apps/web/src/pages/Auth.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useWalletStore } from '@/store/wallet'
 import { authService } from '@/services/auth'
 import { mnemonicGenerate } from '@polkadot/util-crypto'
@@ -16,19 +17,23 @@ import {
   ArrowLeft,
   ArrowRight,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Info,
+  Globe
 } from 'lucide-react'
 
 export default function Auth() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const { t, i18n } = useTranslation()
   const { 
     isInitialized, 
     isLocked, 
     createWallet, 
     importWallet, 
     unlock,
-    currentAddress 
+    activeAccount,
+    clearWallet
   } = useWalletStore()
   
   // Estados do fluxo
@@ -42,6 +47,7 @@ export default function Auth() {
   const [copiedSeed, setCopiedSeed] = useState(false)
   const [generatedSeed, setGeneratedSeed] = useState('')
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
   
   // Estados para validação de seed
@@ -52,6 +58,12 @@ export default function Auth() {
   
   // Estado temporário para guardar a senha entre os passos
   const [tempPassword, setTempPassword] = useState('')
+
+  // Função para mudar idioma
+  const changeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang)
+    localStorage.setItem('bazari_language', lang)
+  }
 
   useEffect(() => {
     // Verificar parâmetros da URL
@@ -100,70 +112,62 @@ export default function Auth() {
   const handleCreateWallet = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setInfo('')
     
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem')
+      setError(t('auth.errors.passwordsDontMatch'))
       return
     }
     
     if (password.length < 8) {
-      setError('A senha deve ter pelo menos 8 caracteres')
+      setError(t('auth.errors.passwordTooShort'))
       return
     }
     
-    setLoading(true)
+    // Guardar senha temporariamente
+    setTempPassword(password)
     
-    try {
-      // Gerar seed localmente (sem criar wallet no store ainda)
-      const mnemonic = mnemonicGenerate(12)
-      setGeneratedSeed(mnemonic)
-      setSeedWords(mnemonic.split(' '))
-      setTempPassword(password) // Guardar senha para usar depois
-      setMode('confirm')
-    } catch (error: any) {
-      console.error('Seed generation error:', error)
-      setError(error.message || 'Erro ao gerar seed phrase')
-    } finally {
-      setLoading(false)
-    }
+    // Gerar seed phrase
+    const mnemonic = mnemonicGenerate(12)
+    setGeneratedSeed(mnemonic)
+    setSeedWords(mnemonic.split(' '))
+    
+    // Ir para o passo de confirmação
+    setMode('confirm')
+    setStep(2)
   }
 
-  // PASSO 2: Confirmar que salvou a seed
+  // PASSO 2: Usuário confirma que salvou a seed
   const handleConfirmSeed = () => {
     if (!seedConfirmed) {
-      setError('Você precisa confirmar que salvou a seed phrase')
+      setError(t('auth.errors.confirmSeedFirst'))
       return
     }
     
-    // Gerar índices aleatórios para verificação
+    // Gerar índices para verificação
     const indices = generateVerificationIndices()
     setVerificationIndices(indices)
-    setVerificationInputs({})
+    
+    // Ir para verificação
     setMode('verify')
+    setStep(3)
   }
 
-  // PASSO 3: Verificar seed e CRIAR WALLET
+  // PASSO 3: Verificar seed e ENTÃO criar a wallet
   const handleVerifySeed = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setInfo('')
     
-    // Verificar se todas as palavras foram preenchidas
-    const allFilled = verificationIndices.every(index => 
-      verificationInputs[index]?.trim()
-    )
+    // Verificar se todas as palavras estão corretas
+    const allCorrect = verificationIndices.every(index => {
+      const userInput = verificationInputs[index]?.toLowerCase().trim()
+      const correctWord = seedWords[index].toLowerCase()
+      return userInput === correctWord
+    })
     
-    if (!allFilled) {
-      setError('Por favor, preencha todas as palavras')
-      return
-    }
-    
-    // Verificar se as palavras estão corretas
-    const isCorrect = verificationIndices.every(index => 
-      verificationInputs[index]?.trim().toLowerCase() === seedWords[index].toLowerCase()
-    )
-    
-    if (!isCorrect) {
-      setError('As palavras não correspondem. Por favor, verifique sua seed phrase.')
+    if (!allCorrect) {
+      setError(t('auth.errors.wordsDoNotMatch'))
       return
     }
     
@@ -177,12 +181,13 @@ export default function Auth() {
       await authService.register(tempPassword)
       
       // Sucesso - ir para dashboard
+      setInfo(t('auth.success.walletCreated'))
       setTimeout(() => {
         navigate('/dashboard')
       }, 1000)
     } catch (error: any) {
       console.error('Registration error:', error)
-      setError(error.message || 'Erro ao finalizar registro')
+      setError(error.message || t('auth.errors.registrationFailed'))
     } finally {
       setLoading(false)
     }
@@ -192,20 +197,21 @@ export default function Auth() {
   const handleImportWallet = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setInfo('')
     
     if (!seedPhrase.trim()) {
-      setError('Por favor, insira a seed phrase')
+      setError(t('auth.errors.enterSeedPhrase'))
       return
     }
     
     const words = seedPhrase.trim().split(/\s+/)
     if (words.length !== 12 && words.length !== 24) {
-      setError('A seed phrase deve conter 12 ou 24 palavras')
+      setError(t('auth.errors.invalidSeedLength'))
       return
     }
     
     if (password.length < 8) {
-      setError('A senha deve ter pelo menos 8 caracteres')
+      setError(t('auth.errors.passwordTooShort'))
       return
     }
     
@@ -213,10 +219,21 @@ export default function Auth() {
     
     try {
       await importWallet(seedPhrase.trim(), password)
-      navigate('/dashboard')
+      setInfo(t('auth.success.walletImported'))
+      
+      // Tentar registrar/login no backend
+      try {
+        await authService.importWallet(seedPhrase.trim(), password)
+      } catch (backendError) {
+        console.log('Backend sync optional:', backendError)
+      }
+      
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 1000)
     } catch (error: any) {
       console.error('Import error:', error)
-      setError(error.message || 'Seed phrase inválida')
+      setError(error.message || t('auth.errors.invalidSeedPhrase'))
     } finally {
       setLoading(false)
     }
@@ -226,14 +243,44 @@ export default function Auth() {
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setInfo('')
     setLoading(true)
     
     try {
       await unlock(password)
-      navigate('/dashboard')
+      setInfo(t('auth.success.walletUnlocked'))
+      
+      // Tentar fazer login no backend também
+      try {
+        await authService.login(password)
+      } catch (backendError) {
+        console.log('Backend sync optional:', backendError)
+      }
+      
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 500)
     } catch (error: any) {
       console.error('Unlock error:', error)
-      setError('Senha incorreta')
+      
+      // MELHOR TRATAMENTO DE ERROS
+      if (error.message.includes('not found') || error.message.includes('corrupted')) {
+        setError(t('auth.errors.walletDataNotFound'))
+        setInfo(t('auth.errors.pleaseImportAgain'))
+        
+        // Oferecer opção de reset
+        setTimeout(() => {
+          if (confirm(t('auth.confirmReset'))) {
+            clearWallet()
+            setMode('import')
+            setPassword('')
+          }
+        }, 2000)
+      } else if (error.message.includes('Incorrect password')) {
+        setError(t('auth.errors.incorrectPassword'))
+      } else {
+        setError(error.message || t('auth.errors.unlockFailed'))
+      }
     } finally {
       setLoading(false)
     }
@@ -243,303 +290,255 @@ export default function Auth() {
   const renderChoice = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
-          Bem-vindo ao Bazari
-        </h2>
-        <p className="text-bazari-sand/60">
-          Escolha como deseja continuar
-        </p>
+        <h2 className="text-2xl font-bold text-bazari-sand">{t('auth.welcome')}</h2>
+        <p className="text-bazari-sand/60 mt-2">{t('auth.chooseHowToContinue')}</p>
       </div>
-
-      {/* Criar Nova Carteira */}
+      
       <button
         onClick={() => setMode('create')}
-        className="w-full group bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-red/30 hover:border-bazari-red/50 rounded-xl p-6 transition-all"
+        className="w-full flex items-center justify-between p-4 bg-bazari-black/50 border border-bazari-red/20 rounded-2xl hover:border-bazari-gold hover:bg-bazari-red/5 transition-all"
       >
-        <div className="flex items-center justify-between">
-          <div className="text-left">
-            <h3 className="text-xl font-bold text-bazari-sand mb-1">
-              Criar Nova Carteira
-            </h3>
-            <p className="text-bazari-sand/60 text-sm">
-              Gerar uma nova seed phrase e criar sua carteira
-            </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-bazari-red/20 to-bazari-gold/20 rounded-lg flex items-center justify-center">
+            <Wallet className="w-5 h-5 text-bazari-gold" />
           </div>
-          <Wallet className="text-bazari-gold group-hover:text-bazari-gold/80 transition-colors" size={24} />
+          <div className="text-left">
+            <p className="font-semibold text-bazari-sand">{t('auth.createNewWallet')}</p>
+            <p className="text-sm text-bazari-sand/50">{t('auth.generateNewSeed')}</p>
+          </div>
         </div>
+        <ArrowRight className="w-5 h-5 text-bazari-sand/40" />
       </button>
-
-      {/* Importar Carteira */}
+      
       <button
         onClick={() => setMode('import')}
-        className="w-full group bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 hover:border-bazari-gold/50 rounded-xl p-6 transition-all"
+        className="w-full flex items-center justify-between p-4 bg-bazari-black/50 border border-bazari-red/20 rounded-2xl hover:border-bazari-gold hover:bg-bazari-gold/5 transition-all"
       >
-        <div className="flex items-center justify-between">
-          <div className="text-left">
-            <h3 className="text-xl font-bold text-bazari-sand mb-1">
-              Importar Carteira
-            </h3>
-            <p className="text-bazari-sand/60 text-sm">
-              Restaurar usando sua seed phrase existente
-            </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-bazari-gold/20 to-bazari-red/20 rounded-lg flex items-center justify-center">
+            <Key className="w-5 h-5 text-bazari-red" />
           </div>
-          <ArrowRight className="text-bazari-gold group-hover:text-bazari-gold/80 transition-colors" size={24} />
+          <div className="text-left">
+            <p className="font-semibold text-bazari-sand">{t('auth.importWallet')}</p>
+            <p className="text-sm text-bazari-sand/50">{t('auth.useExistingSeed')}</p>
+          </div>
         </div>
+        <ArrowRight className="w-5 h-5 text-bazari-sand/40" />
       </button>
-
-      {/* Desbloquear (só aparece se já tem carteira) */}
-      {isInitialized && isLocked && (
+      
+      {isInitialized && (
         <button
           onClick={() => setMode('unlock')}
-          className="w-full group bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-red/30 hover:border-bazari-red/50 rounded-xl p-6 transition-all"
+          className="w-full flex items-center justify-between p-4 bg-bazari-black/50 border border-bazari-red/20 rounded-2xl hover:border-bazari-gold hover:bg-green-900/10 transition-all"
         >
-          <div className="flex items-center justify-between">
-            <div className="text-left">
-              <h3 className="text-xl font-bold text-bazari-sand mb-1">
-                Desbloquear Carteira
-              </h3>
-              <p className="text-bazari-sand/60 text-sm">
-                Sua carteira está bloqueada
-              </p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-green-600/20 to-bazari-gold/20 rounded-lg flex items-center justify-center">
+              <Shield className="w-5 h-5 text-green-500" />
             </div>
-            <Key className="text-bazari-gold group-hover:text-bazari-gold/80 transition-colors" size={24} />
+            <div className="text-left">
+              <p className="font-semibold text-bazari-sand">{t('auth.unlockWallet')}</p>
+              <p className="text-sm text-bazari-sand/50">{t('auth.accessExistingWallet')}</p>
+            </div>
           </div>
+          <ArrowRight className="w-5 h-5 text-bazari-sand/40" />
         </button>
       )}
+      
+      <div className="mt-8 p-4 bg-bazari-black/30 border border-bazari-red/10 rounded-lg">
+        <div className="flex items-start gap-2">
+          <Shield className="w-5 h-5 text-bazari-sand/40 mt-0.5" />
+          <div className="text-xs text-bazari-sand/60">
+            <p className="font-semibold mb-1">{t('auth.100web3')}</p>
+            <p>{t('auth.privateKeysNeverLeave')}</p>
+            <p>{t('auth.encryptedLocalStorage')}</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 
-  // Renderizar criação de carteira - Passo 1: Senha
-  const renderCreate = () => (
+  // Renderizar criação de senha
+  const renderCreatePassword = () => (
     <form onSubmit={handleCreateWallet} className="space-y-6">
-      {/* Progress */}
-      <div className="flex items-center justify-center space-x-2 mb-6">
-        <div className="w-8 h-8 bg-bazari-red text-white rounded-full flex items-center justify-center text-sm font-bold">
-          1
-        </div>
-        <div className="w-16 h-1 bg-bazari-red/20" />
-        <div className="w-8 h-8 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand/60 rounded-full flex items-center justify-center text-sm font-bold">
-          2
-        </div>
-        <div className="w-16 h-1 bg-bazari-red/20" />
-        <div className="w-8 h-8 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand/60 rounded-full flex items-center justify-center text-sm font-bold">
-          3
-        </div>
-      </div>
-
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
-          Criar Senha de Proteção
-        </h2>
-        <p className="text-bazari-sand/60 text-sm">
-          Esta senha protegerá sua carteira localmente
-        </p>
+        <h2 className="text-2xl font-bold text-bazari-sand">{t('auth.createProtectionPassword')}</h2>
+        <p className="text-bazari-sand/60 mt-2">{t('auth.thisPasswordWillProtect')}</p>
       </div>
-
+      
       <div>
         <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
-          Senha
+          {t('auth.password')}
         </label>
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
-            placeholder="Mínimo 8 caracteres"
+            className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand rounded-lg focus:border-bazari-gold focus:outline-none focus:ring-1 focus:ring-bazari-gold/50 placeholder:text-bazari-sand/40"
+            placeholder={t('auth.minCharacters', { count: 8 })}
             required
-            disabled={loading}
             minLength={8}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-bazari-sand/60 hover:text-bazari-sand"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-bazari-sand/40 hover:text-bazari-sand/60"
           >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         </div>
       </div>
-
+      
       <div>
         <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
-          Confirmar Senha
+          {t('auth.confirmPassword')}
         </label>
         <input
           type={showPassword ? 'text' : 'password'}
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
-          placeholder="Digite a senha novamente"
+          className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand rounded-lg focus:border-bazari-gold focus:outline-none focus:ring-1 focus:ring-bazari-gold/50 placeholder:text-bazari-sand/40"
+          placeholder={t('auth.enterPasswordAgain')}
           required
-          disabled={loading}
           minLength={8}
         />
       </div>
-
+      
       {error && (
-        <div className="flex items-center space-x-2 text-red-400 text-sm">
-          <AlertCircle size={16} />
-          <span>{error}</span>
+        <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-300">{error}</p>
         </div>
       )}
-
-      <div className="flex gap-4">
-        <button
-          type="button"
-          onClick={() => {
-            setMode('choice')
-            setPassword('')
-            setConfirmPassword('')
-            setError('')
-          }}
-          className="flex-1 py-3 px-4 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand font-medium rounded-lg transition-colors"
-        >
-          Voltar
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Gerando...' : 'Continuar'}
-        </button>
-      </div>
+      
+      <button
+        type="submit"
+        disabled={loading || password.length < 8 || password !== confirmPassword}
+        className="w-full py-3 bg-bazari-red text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        {t('auth.continue')}
+      </button>
+      
+      <button
+        type="button"
+        onClick={() => setMode('choice')}
+        className="w-full py-2 text-bazari-sand/60 hover:text-bazari-sand"
+      >
+        <ArrowLeft className="w-4 h-4 inline mr-2" />
+        {t('auth.back')}
+      </button>
     </form>
   )
 
-  // Renderizar confirmação de seed - Passo 2
-  const renderConfirm = () => (
+  // Renderizar seed phrase
+  const renderSeedPhrase = () => (
     <div className="space-y-6">
-      {/* Progress */}
-      <div className="flex items-center justify-center space-x-2 mb-6">
-        <div className="w-8 h-8 bg-bazari-gold text-bazari-black rounded-full flex items-center justify-center text-sm font-bold">
-          ✓
-        </div>
-        <div className="w-16 h-1 bg-bazari-gold" />
-        <div className="w-8 h-8 bg-bazari-red text-white rounded-full flex items-center justify-center text-sm font-bold">
-          2
-        </div>
-        <div className="w-16 h-1 bg-bazari-red/20" />
-        <div className="w-8 h-8 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand/60 rounded-full flex items-center justify-center text-sm font-bold">
-          3
-        </div>
-      </div>
-
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
-          Sua Seed Phrase
-        </h2>
-        <p className="text-bazari-sand/60 text-sm">
-          Anote estas palavras em ordem. É a única forma de recuperar sua carteira!
+        <h2 className="text-2xl font-bold text-bazari-sand">{t('auth.yourSeedPhrase')}</h2>
+        <p className="text-bazari-sand/60 mt-2">
+          {t('auth.writeDownWords')}
         </p>
       </div>
-
-      {/* Aviso */}
-      <div className="bg-bazari-red/10 border border-bazari-red/30 rounded-xl p-4 mb-6">
-        <div className="flex items-start space-x-3">
-          <AlertTriangle className="text-bazari-red mt-0.5" size={20} />
-          <div className="text-sm text-bazari-sand/80">
-            <p className="font-semibold mb-1">Importante!</p>
-            <p>Nunca compartilhe sua seed phrase. Qualquer pessoa com acesso a ela pode roubar seus fundos.</p>
+      
+      <div className="p-4 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-yellow-300">
+            <p className="font-semibold mb-1">{t('auth.important')}</p>
+            <p>{t('auth.neverShareSeed')}</p>
           </div>
         </div>
       </div>
-
-      {/* Seed Display */}
-      <div className="bg-bazari-black/50 border border-bazari-gold/30 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            type="button"
-            onClick={() => setShowSeed(!showSeed)}
-            className="text-sm text-bazari-gold hover:text-bazari-gold/80 flex items-center space-x-2"
-          >
-            {showSeed ? <EyeOff size={16} /> : <Eye size={16} />}
-            <span>{showSeed ? 'Ocultar' : 'Mostrar'} palavras</span>
-          </button>
-          
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={handleCopySeed}
-              className="text-sm text-bazari-gold hover:text-bazari-gold/80 flex items-center space-x-2"
-            >
-              {copiedSeed ? <Check size={20} className="text-green-400" /> : <Copy size={20} />}
-            </button>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-3">
+      
+      <div className="relative">
+        <div className={`grid grid-cols-3 gap-3 p-4 bg-bazari-black/30 border border-bazari-red/10 rounded-lg ${!showSeed ? 'blur-md' : ''}`}>
           {seedWords.map((word, index) => (
-            <div
-              key={index}
-              className="bg-bazari-black/80 border border-bazari-red/20 px-3 py-2 rounded-lg text-center"
-              style={{ filter: showSeed ? 'none' : 'blur(5px)' }}
-            >
-              <span className="text-bazari-sand/50 text-xs mr-2">{index + 1}.</span>
-              <span className="text-bazari-sand font-mono text-sm">{word}</span>
+            <div key={index} className="flex items-center gap-2 p-2 bg-bazari-black/50 rounded border border-bazari-red/20">
+              <span className="text-xs text-bazari-sand/50 font-mono">{index + 1}.</span>
+              <span className="font-mono text-sm text-bazari-sand">{word}</span>
             </div>
           ))}
         </div>
+        
+        {!showSeed && (
+          <button
+            onClick={() => setShowSeed(true)}
+            className="absolute inset-0 flex items-center justify-center bg-bazari-black/60 rounded-lg"
+          >
+            <div className="bg-bazari-black px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 border border-bazari-red/30">
+              <Eye className="w-5 h-5 text-bazari-sand" />
+              <span className="text-bazari-sand">{t('auth.showWords')}</span>
+            </div>
+          </button>
+        )}
       </div>
-
-      {/* Confirmação */}
-      <div className="bg-bazari-black/50 border border-bazari-gold/30 rounded-lg p-4">
-        <label className="flex items-start space-x-3 cursor-pointer">
+      
+      <div className="flex gap-3">
+        <button
+          onClick={handleCopySeed}
+          className="flex-1 py-2 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand rounded-lg hover:bg-bazari-red/10 hover:border-bazari-gold flex items-center justify-center gap-2"
+        >
+          {copiedSeed ? (
+            <>
+              <Check className="w-4 h-4 text-green-400" />
+              <span className="text-green-400">{t('common.copied')}</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              <span>{t('common.copy')}</span>
+            </>
+          )}
+        </button>
+        
+        <button
+          onClick={() => setShowSeed(!showSeed)}
+          className="flex-1 py-2 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand rounded-lg hover:bg-bazari-red/10 hover:border-bazari-gold flex items-center justify-center gap-2"
+        >
+          {showSeed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          <span>{showSeed ? t('auth.hideWords') : t('auth.showWords')}</span>
+        </button>
+      </div>
+      
+      <div className="space-y-3">
+        <label className="flex items-start gap-3">
           <input
             type="checkbox"
             checked={seedConfirmed}
             onChange={(e) => setSeedConfirmed(e.target.checked)}
-            className="mt-1"
+            className="mt-1 accent-bazari-red"
           />
           <span className="text-sm text-bazari-sand/80">
-            Confirmo que anotei minha seed phrase em um local seguro e entendo que é minha única forma de recuperar a carteira
+            {t('auth.confirmSavedSeed')}
           </span>
         </label>
       </div>
-
+      
       <button
         onClick={handleConfirmSeed}
         disabled={!seedConfirmed}
-        className="w-full py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 bg-bazari-red text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        Verificar Seed Phrase
+        {t('auth.continueToVerification')}
       </button>
     </div>
   )
 
-  // Renderizar verificação de seed - Passo 3
-  const renderVerify = () => (
+  // Renderizar verificação de seed
+  const renderVerifySeed = () => (
     <form onSubmit={handleVerifySeed} className="space-y-6">
-      {/* Progress */}
-      <div className="flex items-center justify-center space-x-2 mb-6">
-        <div className="w-8 h-8 bg-bazari-gold text-bazari-black rounded-full flex items-center justify-center text-sm font-bold">
-          ✓
-        </div>
-        <div className="w-16 h-1 bg-bazari-gold" />
-        <div className="w-8 h-8 bg-bazari-gold text-bazari-black rounded-full flex items-center justify-center text-sm font-bold">
-          ✓
-        </div>
-        <div className="w-16 h-1 bg-bazari-gold" />
-        <div className="w-8 h-8 bg-bazari-red text-white rounded-full flex items-center justify-center text-sm font-bold">
-          3
-        </div>
-      </div>
-
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
-          Verificar Seed Phrase
-        </h2>
-        <p className="text-bazari-sand/60 text-sm">
-          Digite as palavras solicitadas para confirmar que você salvou corretamente
+        <h2 className="text-2xl font-bold text-bazari-sand">{t('auth.verifySeedPhrase')}</h2>
+        <p className="text-bazari-sand/60 mt-2">
+          {t('auth.enterRequestedWords')}
         </p>
       </div>
-
+      
       <div className="space-y-4">
         {verificationIndices.map((index) => (
           <div key={index}>
             <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
-              Palavra #{index + 1}
+              {t('auth.word')} #{index + 1}
             </label>
             <input
               type="text"
@@ -548,232 +547,295 @@ export default function Auth() {
                 ...verificationInputs,
                 [index]: e.target.value
               })}
-              className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent font-mono lowercase"
-              placeholder={`Digite a palavra #${index + 1}`}
+              className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand rounded-lg focus:border-bazari-gold focus:outline-none focus:ring-1 focus:ring-bazari-gold/50 font-mono placeholder:text-bazari-sand/40"
+              placeholder={t('auth.enterWord', { number: index + 1 })}
               required
-              disabled={loading}
-              autoComplete="off"
-              spellCheck={false}
             />
           </div>
         ))}
       </div>
-
+      
       {error && (
-        <div className="flex items-center space-x-2 text-red-400 text-sm">
-          <AlertCircle size={16} />
-          <span>{error}</span>
+        <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-300">{error}</p>
         </div>
       )}
-
-      <div className="flex gap-4">
-        <button
-          type="button"
-          onClick={() => {
-            setMode('confirm')
-            setVerificationInputs({})
-            setError('')
-          }}
-          className="flex-1 py-3 px-4 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand font-medium rounded-lg transition-colors"
-        >
-          Voltar
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Criando Carteira...' : 'Finalizar Criação'}
-        </button>
-      </div>
+      
+      {info && (
+        <div className="p-3 bg-green-900/20 border border-green-500/30 rounded-lg flex items-start gap-2">
+          <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-green-300">{info}</p>
+        </div>
+      )}
+      
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full py-3 bg-bazari-red text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+      >
+        {loading ? (
+          <>
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span>{t('auth.creatingWallet')}</span>
+          </>
+        ) : (
+          <span>{t('auth.finalizeCreation')}</span>
+        )}
+      </button>
     </form>
   )
 
-  // Renderizar importação de carteira
+  // Renderizar importação
   const renderImport = () => (
     <form onSubmit={handleImportWallet} className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
-          Importar Carteira
-        </h2>
-        <p className="text-bazari-sand/60 text-sm">
-          Restaure sua carteira usando a seed phrase
-        </p>
+        <h2 className="text-2xl font-bold text-bazari-sand">{t('auth.importWallet')}</h2>
+        <p className="text-bazari-sand/60 mt-2">{t('auth.restoreWalletUsingSeed')}</p>
       </div>
-
+      
       <div>
         <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
-          Seed Phrase (12 ou 24 palavras)
+          {t('auth.seedPhrase12or24')}
         </label>
         <textarea
           value={seedPhrase}
           onChange={(e) => setSeedPhrase(e.target.value)}
-          className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent h-24 font-mono text-sm placeholder-bazari-sand/40"
+          className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand rounded-lg focus:border-bazari-gold focus:outline-none focus:ring-1 focus:ring-bazari-gold/50 font-mono text-sm placeholder:text-bazari-sand/40"
+          rows={4}
           placeholder="palavra1 palavra2 palavra3..."
           required
-          disabled={loading}
-          spellCheck={false}
         />
       </div>
-
+      
       <div>
         <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
-          Nova Senha
+          {t('auth.newPassword')}
         </label>
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
-            placeholder="Senha para proteger localmente"
+            className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand rounded-lg focus:border-bazari-gold focus:outline-none focus:ring-1 focus:ring-bazari-gold/50 placeholder:text-bazari-sand/40"
+            placeholder={t('auth.passwordToProtectLocally')}
             required
-            disabled={loading}
             minLength={8}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-bazari-sand/60 hover:text-bazari-sand"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-bazari-sand/40 hover:text-bazari-sand/60"
           >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         </div>
       </div>
-
+      
       {error && (
-        <div className="flex items-center space-x-2 text-red-400 text-sm">
-          <AlertCircle size={16} />
-          <span>{error}</span>
+        <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-300">{error}</p>
         </div>
       )}
-
-      <div className="flex gap-4">
-        <button
-          type="button"
-          onClick={() => {
-            setMode('choice')
-            setSeedPhrase('')
-            setPassword('')
-            setError('')
-          }}
-          className="flex-1 py-3 px-4 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand font-medium rounded-lg transition-colors"
-        >
-          Voltar
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Importando...' : 'Importar'}
-        </button>
-      </div>
+      
+      {info && (
+        <div className="p-3 bg-green-900/20 border border-green-500/30 rounded-lg flex items-start gap-2">
+          <Check className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-green-300">{info}</p>
+        </div>
+      )}
+      
+      <button
+        type="submit"
+        disabled={loading || !seedPhrase.trim() || password.length < 8}
+        className="w-full py-3 bg-bazari-red text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+      >
+        {loading ? (
+          <>
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span>{t('auth.importing')}</span>
+          </>
+        ) : (
+          <span>{t('auth.import')}</span>
+        )}
+      </button>
+      
+      <button
+        type="button"
+        onClick={() => setMode('choice')}
+        className="w-full py-2 text-bazari-sand/60 hover:text-bazari-sand"
+      >
+        <ArrowLeft className="w-4 h-4 inline mr-2" />
+        {t('auth.back')}
+      </button>
     </form>
   )
 
-  // Renderizar desbloqueio
+  // Renderizar unlock
   const renderUnlock = () => (
     <form onSubmit={handleUnlock} className="space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-bazari-sand mb-2">
-          Desbloquear Carteira
-        </h2>
-        <p className="text-bazari-sand/60 text-sm">
-          Digite sua senha para acessar sua carteira
-        </p>
+        <h2 className="text-2xl font-bold text-bazari-sand">{t('auth.welcomeBack')}</h2>
+        <p className="text-bazari-sand/60 mt-2">{t('auth.enterYourPassword')}</p>
+        {activeAccount && (
+          <p className="text-xs text-bazari-sand/40 mt-1 font-mono">
+            {activeAccount.address.slice(0, 8)}...{activeAccount.address.slice(-6)}
+          </p>
+        )}
       </div>
-
+      
       <div>
         <label className="block text-sm font-medium text-bazari-sand/80 mb-2">
-          Senha
+          {t('auth.password')}
         </label>
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent placeholder-bazari-sand/40"
-            placeholder="Digite sua senha"
+            className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/20 text-bazari-sand rounded-lg focus:border-bazari-gold focus:outline-none focus:ring-1 focus:ring-bazari-gold/50 placeholder:text-bazari-sand/40"
+            placeholder={t('auth.enterYourPassword')}
             required
-            disabled={loading}
             autoFocus
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-bazari-sand/60 hover:text-bazari-sand"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-bazari-sand/40 hover:text-bazari-sand/60"
           >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         </div>
       </div>
-
+      
       {error && (
-        <div className="flex items-center space-x-2 text-red-400 text-sm">
-          <AlertCircle size={16} />
-          <span>{error}</span>
+        <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-300">{error}</p>
         </div>
       )}
-
+      
+      {info && (
+        <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg flex items-start gap-2">
+          <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-blue-300">{info}</p>
+        </div>
+      )}
+      
       <button
         type="submit"
-        disabled={loading}
-        className="w-full py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={loading || !password}
+        className="w-full py-3 bg-bazari-red text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
-        {loading ? 'Desbloqueando...' : 'Desbloquear'}
+        {loading ? (
+          <>
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span>{t('auth.unlocking')}</span>
+          </>
+        ) : (
+          <>
+            <Shield className="w-5 h-5" />
+            <span>{t('auth.unlock')}</span>
+          </>
+        )}
       </button>
-
-      <div className="text-center text-sm text-bazari-sand/60">
-        Esqueceu a senha?{' '}
+      
+      <div className="text-center space-y-2">
         <button
           type="button"
           onClick={() => {
             setMode('import')
             setPassword('')
             setError('')
+            setInfo('')
           }}
-          className="text-bazari-gold hover:text-bazari-gold/80"
+          className="text-sm text-bazari-sand/60 hover:text-bazari-gold"
         >
-          Restaurar com seed phrase
+          {t('auth.forgotPassword')}
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm(t('auth.confirmResetWallet'))) {
+              clearWallet()
+              setMode('choice')
+              setPassword('')
+              setError('')
+              setInfo('')
+            }
+          }}
+          className="text-sm text-red-400 hover:text-red-300 block mx-auto"
+        >
+          {t('auth.resetWallet')}
         </button>
       </div>
     </form>
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-bazari-black via-bazari-black to-bazari-black/90 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bazari-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-bazari-red to-bazari-gold rounded-2xl mb-4">
-            <Wallet className="text-white" size={40} />
+        <div className="bg-bazari-black/90 border border-bazari-red/20 rounded-2xl p-8">
+          {/* Language Selector - Canto Superior Direito */}
+          <div className="flex justify-between items-start mb-6">
+            {/* Logo */}
+            <div className="flex justify-center flex-1">
+              <div className="w-16 h-16 bg-gradient-to-r from-bazari-red to-bazari-gold rounded-2xl flex items-center justify-center">
+                <Wallet className="w-8 h-8 text-white" />
+              </div>
+            </div>
+            
+            {/* Language Selector */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  const nextLang = {
+                    'pt-BR': 'en-US',
+                    'en-US': 'es-ES',
+                    'es-ES': 'pt-BR'
+                  }[i18n.language] || 'pt-BR'
+                  changeLanguage(nextLang)
+                }}
+                className="flex items-center gap-1 px-2 py-1 bg-bazari-black/50 border border-bazari-red/20 rounded-lg hover:border-bazari-gold transition-all"
+              >
+                <Globe className="w-4 h-4 text-bazari-sand/60" />
+                <span className="text-xs text-bazari-sand/60">
+                  {i18n.language === 'pt-BR' && '🇧🇷'}
+                  {i18n.language === 'en-US' && '🇺🇸'}
+                  {i18n.language === 'es-ES' && '🇪🇸'}
+                </span>
+              </button>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-bazari-sand mb-2">Bazari</h1>
-          <p className="text-bazari-sand/60">100% Web3 • Sem intermediários</p>
-        </div>
-
-        {/* Card */}
-        <div className="bg-bazari-black/50 backdrop-blur-lg rounded-2xl shadow-2xl border border-bazari-red/20 p-8">
-          {/* Security Badge */}
-          <div className="flex items-center justify-center space-x-2 mb-6 text-green-400">
-            <Shield size={16} />
-            <span className="text-xs">Criptografia AES-256-GCM • sr25519</span>
-          </div>
-
-          {/* Renderizar modo atual */}
+          
+          {/* Indicador de passos */}
+          {(mode === 'create' || mode === 'confirm' || mode === 'verify') && (
+            <div className="flex items-center justify-center gap-2 mb-8">
+              {[1, 2, 3].map((s) => (
+                <div
+                  key={s}
+                  className={`h-2 w-16 rounded-full transition-colors ${
+                    step >= s ? 'bg-bazari-red' : 'bg-bazari-red/20'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+          
+          {/* Conteúdo dinâmico */}
           {mode === 'choice' && renderChoice()}
-          {mode === 'create' && renderCreate()}
-          {mode === 'confirm' && renderConfirm()}
-          {mode === 'verify' && renderVerify()}
+          {mode === 'create' && renderCreatePassword()}
+          {mode === 'confirm' && renderSeedPhrase()}
+          {mode === 'verify' && renderVerifySeed()}
           {mode === 'import' && renderImport()}
           {mode === 'unlock' && renderUnlock()}
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-6 text-xs text-bazari-sand/50">
-          <p>Suas chaves privadas nunca saem do seu dispositivo</p>
-          <p className="mt-1">Armazenamento local criptografado</p>
+          
+          {/* Badge de segurança */}
+          <div className="mt-8 text-center text-xs text-bazari-sand/40">
+            <p>🔒 {t('auth.securityBadge')}</p>
+          </div>
         </div>
       </div>
     </div>

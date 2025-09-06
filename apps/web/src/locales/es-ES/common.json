@@ -151,6 +151,20 @@
 
 
 
+    "welcomeBack": "¡Bienvenido de vuelta!",
+    "createNewWallet": "Crear nueva billetera",
+    "generateNewSeed": "Generar una nueva frase semilla",
+    "useExistingSeed": "Usar frase semilla existente",
+    "unlockWallet": "Desbloquear billetera",
+    "accessExistingWallet": "Acceder a billetera existente",
+    "back": "Volver",
+    "continue": "Continuar",
+    "forgotPassword": "¿Olvidaste la contraseña? Importa con frase semilla",
+    "resetWallet": "Resetear billetera",
+    "confirmReset": "¿Deseas borrar los datos e importar tu billetera nuevamente?",
+    "confirmResetWallet": "Esto borrará todos los datos locales. ¿Estás seguro?",
+
+
     "welcome": "Bienvenido a Bazari",
     "chooseHowToContinue": "Elige cómo continuar",
     "createProtectionPassword": "Crear Contraseña de Protección",
@@ -222,9 +236,29 @@
     },
     "success": {
       "title": "¡Cartera Creada!",
-      "description": "Redirigiendo a tu cartera..."
+      "description": "Redirigiendo a tu cartera...",
+
+      "walletCreated": "¡Billetera creada con éxito! Redirigiendo...",
+      "walletImported": "¡Billetera importada con éxito!",
+      "walletUnlocked": "¡Billetera desbloqueada con éxito!"
+
     },
     "errors": {
+
+
+      "passwordsDontMatch": "Las contraseñas no coinciden",
+      "confirmSeedFirst": "Por favor, confirma que guardaste tu frase semilla",
+      "wordsDoNotMatch": "Las palabras no coinciden. Por favor, verifica tu frase semilla.",
+      "enterSeedPhrase": "Por favor, ingresa la frase semilla",
+      "invalidSeedLength": "La frase semilla debe contener 12 o 24 palabras",
+      "invalidSeedPhrase": "Frase semilla inválida",
+      "incorrectPassword": "Contraseña incorrecta. Por favor, intenta nuevamente.",
+      "unlockFailed": "Error al desbloquear la billetera",
+      "walletDataNotFound": "Datos de la billetera no encontrados o corruptos.",
+      "pleaseImportAgain": "Por favor, importa tu billetera usando la frase semilla.",
+      "walletAlreadyExists": "La billetera ya existe",
+      "walletNotFound": "Billetera no encontrada",
+
       "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
       "passwordMismatch": "Las contraseñas no coinciden",
       "seedNotConfirmed": "Por favor, confirma que guardaste tu frase de recuperación",
@@ -406,3 +440,10 @@
     "seedGenerationError": "Error al generar frase semilla"
   }
 }
+
+
+
+
+
+
+
