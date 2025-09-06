@@ -101,6 +101,17 @@
     "button": "Criar Conta Grátis"
   },
   "footer": {
+
+    "quickLinks": "Links Rápidos",
+    "resources": "Recursos",
+    "marketplace": "Marketplace",
+    "dao": "DAO",
+    "wallet": "Carteira",
+    "documentation": "Documentação",
+    "whitepaper": "Whitepaper",
+    "api": "API",
+    "developers": "Desenvolvedores",
+    "allRightsReserved": "Todos os direitos reservados",
     "description": "Bazari - Nação Digital Descentralizada. Economia popular, democrática e sustentável.",
     "links": {
       "title": "Links Rápidos",
@@ -133,6 +144,49 @@
     "register": "Cadastrar"
   },
   "auth": {
+
+
+
+    "welcome": "Bem-vindo ao Bazari",
+    "chooseHowToContinue": "Escolha como deseja continuar",
+    "createProtectionPassword": "Criar Senha de Proteção",
+    "thisPasswordWillProtect": "Esta senha protegerá sua carteira localmente",
+    "password": "Senha",
+    "confirmPassword": "Confirmar Senha",
+    "minCharacters": "Mínimo {{count}} caracteres",
+    "enterPasswordAgain": "Digite a senha novamente",
+    "yourSeedPhrase": "Sua Seed Phrase",
+    "writeDownWords": "Anote estas palavras em ordem. É a única forma de recuperar sua carteira!",
+    "important": "Importante!",
+    "neverShareSeed": "Nunca compartilhe sua seed phrase. Qualquer pessoa com acesso a ela pode roubar seus fundos.",
+    "showWords": "Mostrar palavras",
+    "hideWords": "Ocultar palavras",
+    "confirmSavedSeed": "Confirmo que anotei minha seed phrase em um local seguro e entendo que é minha única forma de recuperar a carteira",
+    "verifySeedPhrase": "Verificar Seed Phrase",
+    "enterRequestedWords": "Digite as palavras solicitadas para confirmar que você salvou corretamente",
+    "word": "Palavra",
+    "enterWord": "Digite a palavra #{{number}}",
+    "finalizeCreation": "Finalizar Criação",
+    "creatingWallet": "Criando Carteira...",
+    "importing": "Importando...",
+    "unlocking": "Desbloqueando...",
+    "verifying": "Verificando...",
+    "generating": "Gerando...",
+    "importWallet": "Importar Carteira",
+    "restoreWalletUsingSeed": "Restaure sua carteira usando a seed phrase",
+    "seedPhrase12or24": "Seed Phrase (12 ou 24 palavras)",
+    "newPassword": "Nova Senha",
+    "passwordToProtectLocally": "Senha para proteger localmente",
+    "import": "Importar",
+    "enterYourPassword": "Digite sua senha",
+    "unlock": "Desbloquear",
+    "securityBadge": "Criptografia AES-256-GCM • sr25519",
+    "100web3": "100% Web3 • Sem intermediários",
+    "privateKeysNeverLeave": "Suas chaves privadas nunca saem do seu dispositivo",
+    "encryptedLocalStorage": "Armazenamento local criptografado",
+
+
+
     "login": {
       "title": "Bem-vindo de volta",
       "description": "Desbloqueie sua carteira para continuar",
@@ -222,6 +276,22 @@
     "seedPhrase": "Frase Seed",
     "enterSeedPhrase": "Digite sua frase de recuperação de 24 palavras",
     "create": "Criar",
+
+    "myMainWallet": "Minha Carteira Principal",
+    "walletLocked": "Sua carteira está bloqueada",
+    "unlockWallet": "Desbloquear Carteira",
+    "createNewWallet": "Criar Nova Carteira",
+    "importExistingWallet": "Importar Carteira Existente",
+    "generateNewSeed": "Gerar uma nova seed phrase e endereço",
+    "restoreWithSeed": "Restaurar usando sua seed phrase",
+    "enterPasswordToAccess": "Digite sua senha para acessar",
+    "forgotPassword": "Esqueceu a senha?",
+    "restoreWithSeedPhrase": "Restaurar com seed phrase",
+    "myBazariAddress": "Meu endereço Bazari:",
+    "network": "Rede",
+    "chain": "BazariChain",
+
+
     "errors": {
       "addressRequired": "Endereço é obrigatório",
       "amountRequired": "Valor é obrigatório",
@@ -254,5 +324,78 @@
       "p2p": "P2P/Câmbio",
       "profile": "Meu Perfil"
     }
+  },
+
+  "status": {
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "connecting": "Conectando...",
+    "loading": "Carregando..."
+  },
+  
+  "actions": {
+    "exit": "Sair",
+    "disconnect": "Desconectar",
+    "connectWallet": "Conectar Carteira",
+    "cancel": "Cancelar",
+    "continue": "Continuar",
+    "back": "Voltar",
+    "finish": "Finalizar",
+    "verify": "Verificar",
+    "generate": "Gerar",
+    "restore": "Restaurar"
+  },
+  
+  "time": {
+    "minAgo": "{{count}} min atrás",
+    "hourAgo": "{{count}}h atrás",
+    "yesterday": "Ontem",
+    "daysAgo": "{{count}} dias atrás",
+    "today": "Hoje",
+    "now": "Agora"
+  },
+  
+  "transaction": {
+    "noTransactions": "Nenhuma transação ainda",
+    "transactionsWillAppear": "Suas transações aparecerão aqui",
+    "sent": "Enviado",
+    "received": "Recebido",
+    "sendTo": "Envio para",
+    "receivedFrom": "Recebido de",
+    "searchPlaceholder": "Buscar por endereço ou hash...",
+    "all": "Todas",
+    "sentTransactions": "Enviadas",
+    "receivedTransactions": "Recebidas",
+    "sendBZR": "Enviar BZR",
+    "recipientAddress": "Endereço do destinatário",
+    "amount": "Valor",
+    "amountBZR": "Valor (BZR)",
+    "sending": "Enviando...",
+    "fee": "Taxa",
+    "estimatedFee": "Taxa estimada",
+    "total": "Total"
+  },
+  
+  "errors": {
+    "enterRecipientAddress": "Digite o endereço do destinatário",
+    "invalidAddress": "Endereço inválido",
+    "cannotSendToYourself": "Você não pode enviar para si mesmo",
+    "enterValidAmount": "Digite um valor válido",
+    "insufficientBalance": "Saldo insuficiente",
+    "insufficientBalanceWithFee": "Saldo insuficiente (incluindo taxa)",
+    "transactionFailed": "Falha ao enviar transação",
+    "transactionError": "Erro ao enviar transação",
+    "incorrectPassword": "Senha incorreta",
+    "invalidSeedPhrase": "Seed phrase inválida",
+    "seedPhraseMustContain": "A seed phrase deve conter {{count}} palavras",
+    "passwordsDoNotMatch": "As senhas não coincidem",
+    "passwordTooShort": "A senha deve ter pelo menos {{min}} caracteres",
+    "pleaseEnterSeedPhrase": "Por favor, insira a seed phrase",
+    "pleaseConfirmSeed": "Você precisa confirmar que salvou a seed phrase",
+    "wordsDoNotMatch": "As palavras não correspondem. Por favor, verifique sua seed phrase.",
+    "fillAllWords": "Por favor, preencha todas as palavras",
+    "registrationError": "Erro ao finalizar registro",
+    "seedGenerationError": "Erro ao gerar seed phrase"
   }
+  
 }

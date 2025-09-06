@@ -102,6 +102,21 @@
   },
   "footer": {
     "description": "Bazari - Nación Digital Descentralizada. Economía popular, democrática y sostenible.",
+    
+    
+    "quickLinks": "Enlaces Rápidos",
+    "resources": "Recursos",
+    "marketplace": "Marketplace",
+    "dao": "DAO",
+    "wallet": "Cartera",
+    "documentation": "Documentación",
+    "whitepaper": "Whitepaper",
+    "api": "API",
+    "developers": "Desarrolladores",
+    "allRightsReserved": "Todos los derechos reservados",
+    
+    
+    
     "links": {
       "title": "Enlaces Rápidos",
       "about": "Acerca de",
@@ -133,6 +148,49 @@
     "register": "Registrar"
   },
   "auth": {
+
+
+
+    "welcome": "Bienvenido a Bazari",
+    "chooseHowToContinue": "Elige cómo continuar",
+    "createProtectionPassword": "Crear Contraseña de Protección",
+    "thisPasswordWillProtect": "Esta contraseña protegerá tu cartera localmente",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "minCharacters": "Mínimo {{count}} caracteres",
+    "enterPasswordAgain": "Ingresa la contraseña nuevamente",
+    "yourSeedPhrase": "Tu Frase Semilla",
+    "writeDownWords": "Anota estas palabras en orden. ¡Es la única forma de recuperar tu cartera!",
+    "important": "¡Importante!",
+    "neverShareSeed": "Nunca compartas tu frase semilla. Cualquiera con acceso puede robar tus fondos.",
+    "showWords": "Mostrar palabras",
+    "hideWords": "Ocultar palabras",
+    "confirmSavedSeed": "Confirmo que anoté mi frase semilla en un lugar seguro y entiendo que es mi única forma de recuperar la cartera",
+    "verifySeedPhrase": "Verificar Frase Semilla",
+    "enterRequestedWords": "Ingresa las palabras solicitadas para confirmar que guardaste correctamente",
+    "word": "Palabra",
+    "enterWord": "Ingresa la palabra #{{number}}",
+    "finalizeCreation": "Finalizar Creación",
+    "creatingWallet": "Creando Cartera...",
+    "importing": "Importando...",
+    "unlocking": "Desbloqueando...",
+    "verifying": "Verificando...",
+    "generating": "Generando...",
+    "importWallet": "Importar Cartera",
+    "restoreWalletUsingSeed": "Restaura tu cartera usando la frase semilla",
+    "seedPhrase12or24": "Frase Semilla (12 o 24 palabras)",
+    "newPassword": "Nueva Contraseña",
+    "passwordToProtectLocally": "Contraseña para proteger localmente",
+    "import": "Importar",
+    "enterYourPassword": "Ingresa tu contraseña",
+    "unlock": "Desbloquear",
+    "securityBadge": "Cifrado AES-256-GCM • sr25519",
+    "100web3": "100% Web3 • Sin intermediarios",
+    "privateKeysNeverLeave": "Tus claves privadas nunca salen de tu dispositivo",
+    "encryptedLocalStorage": "Almacenamiento local cifrado",
+
+
+
     "login": {
       "title": "Bienvenido de Vuelta",
       "description": "Desbloquea tu cartera para continuar",
@@ -178,6 +236,23 @@
     }
   },
   "wallet": {
+
+
+    "myMainWallet": "Mi Cartera Principal",
+    "walletLocked": "Tu cartera está bloqueada",
+    "unlockWallet": "Desbloquear Cartera",
+    "createNewWallet": "Crear Nueva Cartera",
+    "importExistingWallet": "Importar Cartera Existente",
+    "generateNewSeed": "Generar una nueva frase semilla y dirección",
+    "restoreWithSeed": "Restaurar usando tu frase semilla",
+    "enterPasswordToAccess": "Ingresa tu contraseña para acceder",
+    "forgotPassword": "¿Olvidaste la contraseña?",
+    "restoreWithSeedPhrase": "Restaurar con frase semilla",
+    "myBazariAddress": "Mi dirección Bazari:",
+    "network": "Red",
+    "chain": "BazariChain",
+
+
     "title": "Cartera",
     "activeAccount": "Cuenta Activa",
     "balance": "Saldo",
@@ -254,5 +329,80 @@
       "p2p": "P2P/Cambio",
       "profile": "Mi Perfil"
     }
+  },
+
+
+
+
+ "status": {
+    "connected": "Conectado",
+    "disconnected": "Desconectado",
+    "connecting": "Conectando...",
+    "loading": "Cargando..."
+  },
+  
+  "actions": {
+    "exit": "Salir",
+    "disconnect": "Desconectar",
+    "connectWallet": "Conectar Cartera",
+    "cancel": "Cancelar",
+    "continue": "Continuar",
+    "back": "Volver",
+    "finish": "Finalizar",
+    "verify": "Verificar",
+    "generate": "Generar",
+    "restore": "Restaurar"
+  },
+  
+  "time": {
+    "minAgo": "hace {{count}} min",
+    "hourAgo": "hace {{count}}h",
+    "yesterday": "Ayer",
+    "daysAgo": "hace {{count}} días",
+    "today": "Hoy",
+    "now": "Ahora"
+  },
+  
+  "transaction": {
+    "noTransactions": "Sin transacciones aún",
+    "transactionsWillAppear": "Tus transacciones aparecerán aquí",
+    "sent": "Enviado",
+    "received": "Recibido",
+    "sendTo": "Envío a",
+    "receivedFrom": "Recibido de",
+    "searchPlaceholder": "Buscar por dirección o hash...",
+    "all": "Todas",
+    "sentTransactions": "Enviadas",
+    "receivedTransactions": "Recibidas",
+    "sendBZR": "Enviar BZR",
+    "recipientAddress": "Dirección del destinatario",
+    "amount": "Cantidad",
+    "amountBZR": "Cantidad (BZR)",
+    "sending": "Enviando...",
+    "fee": "Tarifa",
+    "estimatedFee": "Tarifa estimada",
+    "total": "Total"
+  },
+  
+  "errors": {
+    "enterRecipientAddress": "Ingrese la dirección del destinatario",
+    "invalidAddress": "Dirección inválida",
+    "cannotSendToYourself": "No puedes enviarte a ti mismo",
+    "enterValidAmount": "Ingrese una cantidad válida",
+    "insufficientBalance": "Saldo insuficiente",
+    "insufficientBalanceWithFee": "Saldo insuficiente (incluida la tarifa)",
+    "transactionFailed": "Error al enviar transacción",
+    "transactionError": "Error de transacción",
+    "incorrectPassword": "Contraseña incorrecta",
+    "invalidSeedPhrase": "Frase semilla inválida",
+    "seedPhraseMustContain": "La frase semilla debe contener {{count}} palabras",
+    "passwordsDoNotMatch": "Las contraseñas no coinciden",
+    "passwordTooShort": "La contraseña debe tener al menos {{min}} caracteres",
+    "pleaseEnterSeedPhrase": "Por favor, ingrese la frase semilla",
+    "pleaseConfirmSeed": "Debes confirmar que guardaste tu frase semilla",
+    "wordsDoNotMatch": "Las palabras no coinciden. Por favor, verifica tu frase semilla.",
+    "fillAllWords": "Por favor, complete todas las palabras",
+    "registrationError": "Error al finalizar el registro",
+    "seedGenerationError": "Error al generar frase semilla"
   }
 }

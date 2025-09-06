@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useWalletStore } from '@/store/wallet'
 import { authService } from '@/services/auth'
+import { mnemonicGenerate } from '@polkadot/util-crypto'
 import { 
   Shield, 
   Wallet, 
@@ -48,6 +49,9 @@ export default function Auth() {
   const [verificationIndices, setVerificationIndices] = useState<number[]>([])
   const [verificationInputs, setVerificationInputs] = useState<{[key: number]: string}>({})
   const [seedConfirmed, setSeedConfirmed] = useState(false)
+  
+  // Estado temporário para guardar a senha entre os passos
+  const [tempPassword, setTempPassword] = useState('')
 
   useEffect(() => {
     // Verificar parâmetros da URL
@@ -64,6 +68,10 @@ export default function Auth() {
       }
     } else if (isInitialized && !isLocked) {
       navigate('/dashboard')
+    } else if (isInitialized && isLocked) {
+      setMode('unlock')
+    } else {
+      setMode('choice')
     }
   }, [searchParams, isInitialized, isLocked, navigate])
 
@@ -88,7 +96,7 @@ export default function Auth() {
     }
   }
 
-  // Criar carteira - Passo 1: definir senha
+  // PASSO 1: Validar senha e gerar seed (mas NÃO criar wallet ainda)
   const handleCreateWallet = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -106,19 +114,21 @@ export default function Auth() {
     setLoading(true)
     
     try {
-      const result = await createWallet(password)
-      setGeneratedSeed(result.seedPhrase)
-      setSeedWords(result.seedPhrase.split(' '))
+      // Gerar seed localmente (sem criar wallet no store ainda)
+      const mnemonic = mnemonicGenerate(12)
+      setGeneratedSeed(mnemonic)
+      setSeedWords(mnemonic.split(' '))
+      setTempPassword(password) // Guardar senha para usar depois
       setMode('confirm')
     } catch (error: any) {
-      console.error('Create wallet error:', error)
-      setError(error.message || 'Erro ao criar carteira')
+      console.error('Seed generation error:', error)
+      setError(error.message || 'Erro ao gerar seed phrase')
     } finally {
       setLoading(false)
     }
   }
 
-  // Confirmar seed - Passo 2
+  // PASSO 2: Confirmar que salvou a seed
   const handleConfirmSeed = () => {
     if (!seedConfirmed) {
       setError('Você precisa confirmar que salvou a seed phrase')
@@ -132,7 +142,7 @@ export default function Auth() {
     setMode('verify')
   }
 
-  // Verificar seed - Passo 3
+  // PASSO 3: Verificar seed e CRIAR WALLET
   const handleVerifySeed = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -160,14 +170,16 @@ export default function Auth() {
     setLoading(true)
     
     try {
-      // Registrar no backend
-      await authService.register(password)
+      // AGORA SIM criar a wallet no store usando a senha guardada
+      const result = await createWallet(tempPassword)
+      
+      // Registrar no backend se necessário
+      await authService.register(tempPassword)
       
       // Sucesso - ir para dashboard
-      setSeedConfirmed(true)
       setTimeout(() => {
         navigate('/dashboard')
-      }, 2000)
+      }, 1000)
     } catch (error: any) {
       console.error('Registration error:', error)
       setError(error.message || 'Erro ao finalizar registro')
@@ -239,44 +251,47 @@ export default function Auth() {
         </p>
       </div>
 
+      {/* Criar Nova Carteira */}
       <button
         onClick={() => setMode('create')}
-        className="w-full p-6 bg-gradient-to-r from-bazari-red to-bazari-red/80 hover:from-bazari-red/80 hover:to-bazari-red rounded-2xl transition-all group border border-bazari-red/20"
-      >
-        <div className="flex items-center justify-between">
-          <div className="text-left">
-            <h3 className="text-xl font-bold text-white mb-1">
-              Criar Nova Carteira
-            </h3>
-            <p className="text-bazari-sand/80 text-sm">
-              Gerar uma nova seed phrase e endereço
-            </p>
-          </div>
-          <ArrowRight className="text-white group-hover:translate-x-1 transition-transform" size={24} />
-        </div>
-      </button>
-
-      <button
-        onClick={() => setMode('import')}
-        className="w-full p-6 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 rounded-2xl transition-all group"
+        className="w-full group bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-red/30 hover:border-bazari-red/50 rounded-xl p-6 transition-all"
       >
         <div className="flex items-center justify-between">
           <div className="text-left">
             <h3 className="text-xl font-bold text-bazari-sand mb-1">
-              Importar Carteira Existente
+              Criar Nova Carteira
             </h3>
             <p className="text-bazari-sand/60 text-sm">
-              Restaurar usando sua seed phrase
+              Gerar uma nova seed phrase e criar sua carteira
             </p>
           </div>
-          <Key className="text-bazari-gold group-hover:text-bazari-gold/80 transition-colors" size={24} />
+          <Wallet className="text-bazari-gold group-hover:text-bazari-gold/80 transition-colors" size={24} />
         </div>
       </button>
 
+      {/* Importar Carteira */}
+      <button
+        onClick={() => setMode('import')}
+        className="w-full group bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 hover:border-bazari-gold/50 rounded-xl p-6 transition-all"
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-left">
+            <h3 className="text-xl font-bold text-bazari-sand mb-1">
+              Importar Carteira
+            </h3>
+            <p className="text-bazari-sand/60 text-sm">
+              Restaurar usando sua seed phrase existente
+            </p>
+          </div>
+          <ArrowRight className="text-bazari-gold group-hover:text-bazari-gold/80 transition-colors" size={24} />
+        </div>
+      </button>
+
+      {/* Desbloquear (só aparece se já tem carteira) */}
       {isInitialized && isLocked && (
         <button
           onClick={() => setMode('unlock')}
-          className="w-full p-6 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 rounded-2xl transition-all group"
+          className="w-full group bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-red/30 hover:border-bazari-red/50 rounded-xl p-6 transition-all"
         >
           <div className="flex items-center justify-between">
             <div className="text-left">
@@ -372,7 +387,12 @@ export default function Auth() {
       <div className="flex gap-4">
         <button
           type="button"
-          onClick={() => setMode('choice')}
+          onClick={() => {
+            setMode('choice')
+            setPassword('')
+            setConfirmPassword('')
+            setError('')
+          }}
           className="flex-1 py-3 px-4 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand font-medium rounded-lg transition-colors"
         >
           Voltar
@@ -382,7 +402,7 @@ export default function Auth() {
           disabled={loading}
           className="flex-1 py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Criando...' : 'Continuar'}
+          {loading ? 'Gerando...' : 'Continuar'}
         </button>
       </div>
     </form>
@@ -528,9 +548,10 @@ export default function Auth() {
                 ...verificationInputs,
                 [index]: e.target.value
               })}
-              className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent font-mono placeholder-bazari-sand/40"
-              placeholder={`Digite a palavra ${index + 1}`}
+              className="w-full px-4 py-3 bg-bazari-black/50 border border-bazari-red/30 rounded-lg text-bazari-sand focus:ring-2 focus:ring-bazari-red focus:border-transparent font-mono lowercase"
+              placeholder={`Digite a palavra #${index + 1}`}
               required
+              disabled={loading}
               autoComplete="off"
               spellCheck={false}
             />
@@ -545,18 +566,12 @@ export default function Auth() {
         </div>
       )}
 
-      {seedConfirmed && (
-        <div className="flex items-center justify-center space-x-2 text-green-400">
-          <Check size={20} />
-          <span>Carteira criada com sucesso! Redirecionando...</span>
-        </div>
-      )}
-
       <div className="flex gap-4">
         <button
           type="button"
           onClick={() => {
             setMode('confirm')
+            setVerificationInputs({})
             setError('')
           }}
           className="flex-1 py-3 px-4 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand font-medium rounded-lg transition-colors"
@@ -565,10 +580,10 @@ export default function Auth() {
         </button>
         <button
           type="submit"
-          disabled={loading || seedConfirmed}
+          disabled={loading}
           className="flex-1 py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Verificando...' : 'Finalizar Criação'}
+          {loading ? 'Criando Carteira...' : 'Finalizar Criação'}
         </button>
       </div>
     </form>
@@ -636,7 +651,12 @@ export default function Auth() {
       <div className="flex gap-4">
         <button
           type="button"
-          onClick={() => setMode('choice')}
+          onClick={() => {
+            setMode('choice')
+            setSeedPhrase('')
+            setPassword('')
+            setError('')
+          }}
           className="flex-1 py-3 px-4 bg-bazari-black/50 hover:bg-bazari-black/70 border border-bazari-gold/30 text-bazari-sand font-medium rounded-lg transition-colors"
         >
           Voltar
@@ -646,7 +666,7 @@ export default function Auth() {
           disabled={loading}
           className="flex-1 py-3 px-4 bg-bazari-red hover:bg-bazari-red/80 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Importando...' : 'Importar Carteira'}
+          {loading ? 'Importando...' : 'Importar'}
         </button>
       </div>
     </form>
@@ -660,13 +680,8 @@ export default function Auth() {
           Desbloquear Carteira
         </h2>
         <p className="text-bazari-sand/60 text-sm">
-          Digite sua senha para acessar
+          Digite sua senha para acessar sua carteira
         </p>
-        {currentAddress && (
-          <p className="text-xs text-bazari-sand/50 mt-2 font-mono">
-            {currentAddress.slice(0, 8)}...{currentAddress.slice(-8)}
-          </p>
-        )}
       </div>
 
       <div>
@@ -682,6 +697,7 @@ export default function Auth() {
             placeholder="Digite sua senha"
             required
             disabled={loading}
+            autoFocus
           />
           <button
             type="button"
@@ -712,7 +728,11 @@ export default function Auth() {
         Esqueceu a senha?{' '}
         <button
           type="button"
-          onClick={() => setMode('import')}
+          onClick={() => {
+            setMode('import')
+            setPassword('')
+            setError('')
+          }}
           className="text-bazari-gold hover:text-bazari-gold/80"
         >
           Restaurar com seed phrase

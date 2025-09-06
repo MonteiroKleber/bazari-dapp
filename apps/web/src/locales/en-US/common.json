@@ -101,6 +101,20 @@
     "button": "Create Free Account"
   },
   "footer": {
+
+
+    "quickLinks": "Quick Links",
+    "resources": "Resources",
+    "marketplace": "Marketplace",
+    "dao": "DAO",
+    "wallet": "Wallet",
+    "documentation": "Documentation",
+    "whitepaper": "Whitepaper",
+    "api": "API",
+    "developers": "Developers",
+    "allRightsReserved": "All rights reserved",
+
+
     "description": "Bazari - Decentralized Digital Nation. Popular, democratic and sustainable economy.",
     "links": {
       "title": "Quick Links",
@@ -133,6 +147,47 @@
     "register": "Register"
   },
   "auth": {
+
+
+    "welcome": "Welcome to Bazari",
+    "chooseHowToContinue": "Choose how to continue",
+    "createProtectionPassword": "Create Protection Password",
+    "thisPasswordWillProtect": "This password will protect your wallet locally",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "minCharacters": "Minimum {{count}} characters",
+    "enterPasswordAgain": "Enter password again",
+    "yourSeedPhrase": "Your Seed Phrase",
+    "writeDownWords": "Write down these words in order. It's the only way to recover your wallet!",
+    "important": "Important!",
+    "neverShareSeed": "Never share your seed phrase. Anyone with access can steal your funds.",
+    "showWords": "Show words",
+    "hideWords": "Hide words",
+    "confirmSavedSeed": "I confirm that I have written down my seed phrase in a safe place and understand it's my only way to recover the wallet",
+    "verifySeedPhrase": "Verify Seed Phrase",
+    "enterRequestedWords": "Enter the requested words to confirm you saved correctly",
+    "word": "Word",
+    "enterWord": "Enter word #{{number}}",
+    "finalizeCreation": "Finalize Creation",
+    "creatingWallet": "Creating Wallet...",
+    "importing": "Importing...",
+    "unlocking": "Unlocking...",
+    "verifying": "Verifying...",
+    "generating": "Generating...",
+    "importWallet": "Import Wallet",
+    "restoreWalletUsingSeed": "Restore your wallet using seed phrase",
+    "seedPhrase12or24": "Seed Phrase (12 or 24 words)",
+    "newPassword": "New Password",
+    "passwordToProtectLocally": "Password to protect locally",
+    "import": "Import",
+    "enterYourPassword": "Enter your password",
+    "unlock": "Unlock",
+    "securityBadge": "AES-256-GCM Encryption • sr25519",
+    "100web3": "100% Web3 • No intermediaries",
+    "privateKeysNeverLeave": "Your private keys never leave your device",
+    "encryptedLocalStorage": "Encrypted local storage",
+
+
     "login": {
       "title": "Welcome Back",
       "description": "Unlock your wallet to continue",
@@ -222,6 +277,21 @@
     "seedPhrase": "Seed Phrase",
     "enterSeedPhrase": "Enter your 24-word recovery phrase",
     "create": "Create",
+
+    "myMainWallet": "My Main Wallet",
+    "walletLocked": "Your wallet is locked",
+    "unlockWallet": "Unlock Wallet",
+    "createNewWallet": "Create New Wallet",
+    "importExistingWallet": "Import Existing Wallet",
+    "generateNewSeed": "Generate a new seed phrase and address",
+    "restoreWithSeed": "Restore using your seed phrase",
+    "enterPasswordToAccess": "Enter your password to access",
+    "forgotPassword": "Forgot password?",
+    "restoreWithSeedPhrase": "Restore with seed phrase",
+    "myBazariAddress": "My Bazari address:",
+    "network": "Network",
+    "chain": "BazariChain",
+
     "errors": {
       "addressRequired": "Address is required",
       "amountRequired": "Amount is required",
@@ -254,5 +324,77 @@
       "p2p": "P2P/Exchange",
       "profile": "My Profile"
     }
+  },
+
+   "status": {
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "connecting": "Connecting...",
+    "loading": "Loading..."
+  },
+  
+  "actions": {
+    "exit": "Exit",
+    "disconnect": "Disconnect",
+    "connectWallet": "Connect Wallet",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "back": "Back",
+    "finish": "Finish",
+    "verify": "Verify",
+    "generate": "Generate",
+    "restore": "Restore"
+  },
+  
+  "time": {
+    "minAgo": "{{count}} min ago",
+    "hourAgo": "{{count}}h ago",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}} days ago",
+    "today": "Today",
+    "now": "Now"
+  },
+  
+  "transaction": {
+    "noTransactions": "No transactions yet",
+    "transactionsWillAppear": "Your transactions will appear here",
+    "sent": "Sent",
+    "received": "Received",
+    "sendTo": "Send to",
+    "receivedFrom": "Received from",
+    "searchPlaceholder": "Search by address or hash...",
+    "all": "All",
+    "sentTransactions": "Sent",
+    "receivedTransactions": "Received",
+    "sendBZR": "Send BZR",
+    "recipientAddress": "Recipient address",
+    "amount": "Amount",
+    "amountBZR": "Amount (BZR)",
+    "sending": "Sending...",
+    "fee": "Fee",
+    "estimatedFee": "Estimated fee",
+    "total": "Total"
+  },
+  
+  "errors": {
+    "enterRecipientAddress": "Enter recipient address",
+    "invalidAddress": "Invalid address",
+    "cannotSendToYourself": "You cannot send to yourself",
+    "enterValidAmount": "Enter a valid amount",
+    "insufficientBalance": "Insufficient balance",
+    "insufficientBalanceWithFee": "Insufficient balance (including fee)",
+    "transactionFailed": "Failed to send transaction",
+    "transactionError": "Transaction error",
+    "incorrectPassword": "Incorrect password",
+    "invalidSeedPhrase": "Invalid seed phrase",
+    "seedPhraseMustContain": "Seed phrase must contain {{count}} words",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least {{min}} characters",
+    "pleaseEnterSeedPhrase": "Please enter the seed phrase",
+    "pleaseConfirmSeed": "Please confirm you saved your seed phrase",
+    "wordsDoNotMatch": "Words do not match. Please check your seed phrase.",
+    "fillAllWords": "Please fill all words",
+    "registrationError": "Registration error",
+    "seedGenerationError": "Error generating seed phrase"
   }
 }

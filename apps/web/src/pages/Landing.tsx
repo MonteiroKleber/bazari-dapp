@@ -1,3 +1,4 @@
+// apps/web/src/pages/Landing.tsx
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
@@ -147,6 +148,17 @@ export default function Landing() {
                   {t('nav.register')}
                 </Link>
               </div>
+              <div className="pt-4 border-t border-bazari-red/20">
+                <select 
+                  value={i18n.language}
+                  onChange={(e) => changeLanguage(e.target.value)}
+                  className="w-full bg-transparent border border-bazari-red/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-bazari-gold"
+                >
+                  <option value="pt-BR" className="bg-bazari-black">🇧🇷 Português</option>
+                  <option value="en-US" className="bg-bazari-black">🇺🇸 English</option>
+                  <option value="es-ES" className="bg-bazari-black">🇪🇸 Español</option>
+                </select>
+              </div>
             </div>
           </motion.div>
         )}
@@ -218,10 +230,12 @@ export default function Landing() {
                   >
                     <Link
                       to={module.path}
-                      className={`block p-6 bg-bazari-black/50 border border-bazari-red/20 rounded-2xl ${module.color} hover:border-transparent transition-all transform hover:scale-105 hover:shadow-xl`}
+                      className={`block p-6 bg-bazari-black/50 border border-bazari-red/20 rounded-2xl ${module.color} transition-all hover:scale-105 hover:shadow-lg group`}
                     >
-                      <Icon className="w-8 h-8 mb-3 mx-auto text-bazari-gold" />
-                      <p className="text-center text-sm font-medium">{t(`modules.${module.id}`)}</p>
+                      <Icon className="w-8 h-8 text-bazari-sand mb-3 group-hover:text-white transition-colors" />
+                      <p className="text-sm font-medium text-bazari-sand group-hover:text-white transition-colors">
+                        {t(`modules.${module.id}`)}
+                      </p>
                     </Link>
                   </motion.div>
                 )
@@ -232,16 +246,15 @@ export default function Landing() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-16 px-4 bg-gradient-to-b from-bazari-black to-bazari-black/80">
-        <div className="container mx-auto max-w-6xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+      <section id="features" className="py-20 px-4 bg-gradient-to-b from-bazari-black to-bazari-black/80">
+        <div className="container mx-auto">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gradient-bazari">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-bazari-sand">
               {t('features.title')}
             </h2>
             <p className="text-lg text-bazari-sand/60">
@@ -249,7 +262,7 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon
               return (
@@ -257,14 +270,13 @@ export default function Landing() {
                   key={feature.key}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="p-6 bg-bazari-black/50 border border-bazari-red/20 rounded-2xl hover:border-bazari-gold/50 transition-all group"
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="bg-bazari-black/50 border border-bazari-red/20 rounded-2xl p-6 hover:border-bazari-gold/50 transition-all"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-r from-bazari-red to-bazari-gold rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <div className="w-12 h-12 bg-gradient-to-r from-bazari-red to-bazari-gold rounded-xl flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2 text-bazari-sand">
+                  <h3 className="text-xl font-semibold mb-3 text-bazari-sand">
                     {t(`features.${feature.key}.title`)}
                   </h3>
                   <p className="text-bazari-sand/60">
@@ -278,16 +290,15 @@ export default function Landing() {
       </section>
 
       {/* Economics Section */}
-      <section id="economics" className="py-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+      <section id="economics" className="py-20 px-4">
+        <div className="container mx-auto">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gradient-bazari">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-bazari-sand">
               {t('economics.title')}
             </h2>
             <p className="text-lg text-bazari-sand/60">
@@ -295,34 +306,40 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {economics.map((item, index) => (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="text-center p-6 bg-bazari-black/50 border border-bazari-red/20 rounded-2xl"
-              >
-                <div className={`w-20 h-20 ${item.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                  <span className="text-2xl font-bold text-white">{item.value}</span>
-                </div>
-                <p className="text-bazari-sand/80 font-medium">{t(item.label)}</p>
-              </motion.div>
-            ))}
+          <div className="max-w-3xl mx-auto">
+            <div className="space-y-4">
+              {economics.map((item, index) => (
+                <motion.div
+                  key={item.label}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  className="flex items-center justify-between bg-bazari-black/50 border border-bazari-red/20 rounded-xl p-4"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-3 h-3 rounded-full ${item.color}`} />
+                    <span className="text-bazari-sand font-medium">
+                      {t(item.label)}
+                    </span>
+                  </div>
+                  <span className="text-2xl font-bold text-bazari-sand">
+                    {item.value}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-gradient-to-r from-bazari-red to-bazari-gold">
-        <div className="container mx-auto max-w-4xl text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
+            className="bg-gradient-to-r from-bazari-red to-bazari-gold rounded-3xl p-12 text-center"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
               {t('cta.title')}
