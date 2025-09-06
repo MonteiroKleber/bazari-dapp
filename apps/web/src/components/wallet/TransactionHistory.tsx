@@ -1,5 +1,7 @@
+// apps/web/src/components/wallet/TransactionHistory.tsx
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { 
   ArrowUpRight, 
   ArrowDownLeft, 
@@ -32,6 +34,7 @@ interface TransactionHistoryProps {
 }
 
 export function TransactionHistory({ transactions, compact = false }: TransactionHistoryProps) {
+  const { t } = useTranslation()
   const { activeAccount, formatBalance } = useWallet()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'send' | 'receive'>('all')
@@ -80,13 +83,13 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
       const hours = Math.floor(diff / (1000 * 60 * 60))
       if (hours === 0) {
         const minutes = Math.floor(diff / (1000 * 60))
-        return `${minutes} min atrás`
+        return t('time.minAgo', { count: minutes })
       }
-      return `${hours}h atrás`
+      return t('time.hourAgo', { count: hours })
     } else if (days === 1) {
-      return 'Ontem'
+      return t('time.yesterday')
     } else if (days < 7) {
-      return `${days} dias atrás`
+      return t('time.daysAgo', { count: days })
     }
     
     return date.toLocaleDateString('pt-BR', {
@@ -104,9 +107,9 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
     return (
       <div className="text-center py-12">
         <Clock className="h-12 w-12 text-bazari-gold/30 mx-auto mb-4" />
-        <p className="text-bazari-sand/50">Nenhuma transação ainda</p>
+        <p className="text-bazari-sand/50">{t('transaction.noTransactions')}</p>
         <p className="text-sm text-bazari-sand/30 mt-2">
-          Suas transações aparecerão aqui
+          {t('transaction.transactionsWillAppear')}
         </p>
       </div>
     )
@@ -127,7 +130,7 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-white">
-                    {tx.from === activeAccount?.address ? 'Enviado' : 'Recebido'}
+                    {tx.from === activeAccount?.address ? t('transaction.sent') : t('transaction.received')}
                   </span>
                   {getStatusIcon(tx.status)}
                 </div>
@@ -160,7 +163,7 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
           <Search className="absolute left-3 top-2.5 h-5 w-5 text-bazari-sand/50" />
           <input
             type="text"
-            placeholder="Buscar por endereço ou hash..."
+            placeholder={t('transaction.searchPlaceholder')}
             className="w-full pl-10 pr-4 py-2 rounded-lg bg-bazari-black/50 border border-bazari-gold/30 text-white placeholder-bazari-sand/50 focus:border-bazari-gold focus:outline-none"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -177,7 +180,7 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
             )}
             onClick={() => setFilterType('all')}
           >
-            Todas
+            {t('transaction.all')}
           </button>
           <button
             className={cn(
@@ -188,7 +191,7 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
             )}
             onClick={() => setFilterType('send')}
           >
-            Enviadas
+            {t('transaction.sentTransactions')}
           </button>
           <button
             className={cn(
@@ -199,7 +202,7 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
             )}
             onClick={() => setFilterType('receive')}
           >
-            Recebidas
+            {t('transaction.receivedTransactions')}
           </button>
         </div>
       </div>
@@ -224,7 +227,7 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       <span className="font-medium text-white">
-                        {tx.from === activeAccount?.address ? 'Envio para' : 'Recebido de'}
+                        {tx.from === activeAccount?.address ? t('transaction.sendTo') : t('transaction.receivedFrom')}
                       </span>
                       <code className="text-sm bg-bazari-black/50 px-2 py-1 rounded text-bazari-sand/70">
                         {tx.from === activeAccount?.address 
@@ -237,25 +240,19 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
                     
                     <div className="flex items-center gap-4 text-xs text-bazari-sand/50">
                       <span>{formatDate(tx.timestamp)}</span>
-                      {tx.txHash && (
-                        <>
-                          <span>•</span>
-                          <a
-                            href={`https://explorer.bazari.io/tx/${tx.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 hover:text-bazari-gold transition-colors"
-                          >
-                            {shortenAddress(tx.txHash)}
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </>
-                      )}
                       {tx.fee && (
-                        <>
-                          <span>•</span>
-                          <span>Taxa: {formatBalance(tx.fee)} BZR</span>
-                        </>
+                        <span>{t('transaction.fee')}: {formatBalance(tx.fee)} BZR</span>
+                      )}
+                      {tx.txHash && (
+                        <a
+                          href={`https://explorer.bazari.io/tx/${tx.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 hover:text-bazari-gold"
+                        >
+                          {t('wallet.viewOnExplorer')}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
                       )}
                     </div>
                   </div>
@@ -269,32 +266,12 @@ export function TransactionHistory({ transactions, compact = false }: Transactio
                     {tx.from === activeAccount?.address ? '-' : '+'} {formatBalance(tx.amount)}
                   </p>
                   <p className="text-sm text-bazari-sand/50">{tx.token}</p>
-                  <p className={cn(
-                    "text-xs mt-1",
-                    tx.status === 'confirmed' ? "text-green-500" :
-                    tx.status === 'failed' ? "text-red-500" :
-                    "text-yellow-500"
-                  )}>
-                    {tx.status === 'confirmed' ? 'Confirmada' :
-                     tx.status === 'failed' ? 'Falhou' :
-                     'Pendente'}
-                  </p>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
       </AnimatePresence>
-      
-      {filteredTransactions.length === 0 && (
-        <div className="text-center py-8">
-          <Search className="h-8 w-8 text-bazari-gold/30 mx-auto mb-3" />
-          <p className="text-bazari-sand/50">Nenhuma transação encontrada</p>
-          <p className="text-sm text-bazari-sand/30 mt-1">
-            Tente ajustar seus filtros
-          </p>
-        </div>
-      )}
     </div>
   )
 }

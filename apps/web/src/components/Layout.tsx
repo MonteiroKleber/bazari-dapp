@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { 
   Menu, 
   X, 
@@ -22,7 +23,6 @@ import {
   Send
 } from 'lucide-react'
 import { WalletConnect } from '@components/wallet/WalletConnect'
-import { useTranslation } from 'react-i18next'
 import { cn } from '@lib/utils'
 
 interface LayoutProps {
@@ -145,7 +145,7 @@ export default function Layout({ children }: LayoutProps) {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
                       isActive
-                        ? "bg-bazari-red/20 text-bazari-red border border-bazari-red/30"
+                        ? "bg-bazari-red/20 text-bazari-red"
                         : "text-bazari-sand/70 hover:text-bazari-sand hover:bg-bazari-red/10"
                     )}
                   >
@@ -162,11 +162,11 @@ export default function Layout({ children }: LayoutProps) {
               <select
                 value={i18n.language}
                 onChange={(e) => changeLanguage(e.target.value)}
-                className="w-full bg-bazari-black/50 border border-bazari-gold/30 rounded-xl px-4 py-2.5 text-bazari-sand focus:border-bazari-gold focus:outline-none focus:ring-1 focus:ring-bazari-gold/50"
+                className="w-full bg-bazari-black/50 border border-bazari-gold/30 rounded-lg px-3 py-2 text-bazari-sand focus:border-bazari-gold focus:outline-none"
               >
-                <option value="pt-BR">🇧🇷 Português</option>
-                <option value="en-US">🇺🇸 English</option>
-                <option value="es-ES">🇪🇸 Español</option>
+                <option value="pt-BR" className="bg-bazari-black">🇧🇷 Português</option>
+                <option value="en-US" className="bg-bazari-black">🇺🇸 English</option>
+                <option value="es-ES" className="bg-bazari-black">🇪🇸 Español</option>
               </select>
             </div>
           </nav>
@@ -179,81 +179,58 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-bazari-black/80 border-t border-bazari-red/20 mt-12">
+      <footer className="bg-bazari-black border-t border-bazari-red/20 mt-20">
         <div className="container mx-auto px-4 py-12">
-          {/* Footer Grid */}
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            {/* Brand Section */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {/* Brand */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 bg-gradient-to-br from-bazari-red to-bazari-gold rounded-xl flex items-center justify-center">
                   <span className="text-white font-bold text-xl">B</span>
                 </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-bazari-red to-bazari-gold bg-clip-text text-transparent">
-                  Bazari
-                </span>
+                <span className="text-xl font-bold text-bazari-sand">Bazari</span>
               </div>
               <p className="text-bazari-sand/60 text-sm">
-                Marketplace descentralizado sem intermediários. 100% Web3, 100% do povo.
+                {t('footer.description')}
               </p>
-              <div className="flex items-center gap-3">
-                <a 
-                  href="https://twitter.com/bazari" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 bg-bazari-black/50 border border-bazari-gold/30 rounded-lg flex items-center justify-center text-bazari-sand/60 hover:text-bazari-gold hover:border-bazari-gold transition-all"
-                >
-                  <Twitter size={16} />
+              <div className="flex gap-3">
+                <a href="#" className="text-bazari-sand/60 hover:text-bazari-gold transition-colors">
+                  <Twitter className="h-5 w-5" />
                 </a>
-                <a 
-                  href="https://github.com/bazari" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 bg-bazari-black/50 border border-bazari-gold/30 rounded-lg flex items-center justify-center text-bazari-sand/60 hover:text-bazari-gold hover:border-bazari-gold transition-all"
-                >
-                  <Github size={16} />
+                <a href="#" className="text-bazari-sand/60 hover:text-bazari-gold transition-colors">
+                  <Github className="h-5 w-5" />
                 </a>
-                <a 
-                  href="https://discord.gg/bazari" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 bg-bazari-black/50 border border-bazari-gold/30 rounded-lg flex items-center justify-center text-bazari-sand/60 hover:text-bazari-gold hover:border-bazari-gold transition-all"
-                >
-                  <MessageSquare size={16} />
+                <a href="#" className="text-bazari-sand/60 hover:text-bazari-gold transition-colors">
+                  <MessageSquare className="h-5 w-5" />
                 </a>
-                <a 
-                  href="https://t.me/bazari" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 bg-bazari-black/50 border border-bazari-gold/30 rounded-lg flex items-center justify-center text-bazari-sand/60 hover:text-bazari-gold hover:border-bazari-gold transition-all"
-                >
-                  <Send size={16} />
+                <a href="#" className="text-bazari-sand/60 hover:text-bazari-gold transition-colors">
+                  <Send className="h-5 w-5" />
                 </a>
               </div>
             </div>
 
             {/* Quick Links */}
             <div>
-              <h3 className="font-semibold text-bazari-sand mb-4">Links Rápidos</h3>
+              <h3 className="font-semibold text-bazari-sand mb-4">{t('footer.quickLinks')}</h3>
               <ul className="space-y-2">
                 <li>
                   <Link to="/marketplace" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Marketplace
+                    {t('footer.marketplace')}
                   </Link>
                 </li>
                 <li>
                   <Link to="/dao" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    DAO
+                    {t('footer.dao')}
                   </Link>
                 </li>
                 <li>
                   <Link to="/wallet" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Carteira
+                    {t('footer.wallet')}
                   </Link>
                 </li>
                 <li>
                   <a href="/docs" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Documentação
+                    {t('footer.documentation')}
                   </a>
                 </li>
               </ul>
@@ -261,71 +238,63 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Resources */}
             <div>
-              <h3 className="font-semibold text-bazari-sand mb-4">Recursos</h3>
+              <h3 className="font-semibold text-bazari-sand mb-4">{t('footer.resources')}</h3>
               <ul className="space-y-2">
                 <li>
                   <a href="/whitepaper" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Whitepaper
+                    {t('footer.whitepaper')}
                   </a>
                 </li>
                 <li>
                   <a href="/api" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    API
+                    {t('footer.api')}
                   </a>
                 </li>
                 <li>
                   <a href="/developers" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Desenvolvedores
+                    {t('footer.developers')}
                   </a>
                 </li>
                 <li>
-                  <a href="/blog" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Blog
+                  <a href="/support" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
+                    {t('footer.links.support')}
                   </a>
                 </li>
               </ul>
             </div>
 
-            {/* Legal */}
+            {/* Community */}
             <div>
-              <h3 className="font-semibold text-bazari-sand mb-4">Legal</h3>
+              <h3 className="font-semibold text-bazari-sand mb-4">{t('footer.community.title')}</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/terms" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Termos de Uso
-                  </Link>
+                  <a href="#" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
+                    {t('footer.community.discord')}
+                  </a>
                 </li>
                 <li>
-                  <Link to="/privacy" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Privacidade
-                  </Link>
+                  <a href="#" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
+                    {t('footer.community.telegram')}
+                  </a>
                 </li>
                 <li>
-                  <Link to="/compliance" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Compliance
-                  </Link>
+                  <a href="#" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
+                    {t('footer.community.twitter')}
+                  </a>
                 </li>
                 <li>
-                  <Link to="/support" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
-                    Suporte
-                  </Link>
+                  <a href="#" className="text-bazari-sand/60 hover:text-bazari-gold text-sm transition-colors">
+                    {t('footer.community.github')}
+                  </a>
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* Footer Bottom */}
-          <div className="pt-8 border-t border-bazari-red/20">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-sm text-bazari-sand/50">
-                <Shield className="h-4 w-4" />
-                <span>Segurança auditada • Código aberto • Descentralizado</span>
-              </div>
-              
-              <p className="text-sm text-bazari-sand/50">
-                © 2024 Bazari DAO. {t('footer.copyright')}
-              </p>
-            </div>
+          <div className="mt-8 pt-8 border-t border-bazari-red/20 text-center">
+            <p className="text-bazari-sand/40 text-sm">
+              {t('footer.copyright')}
+            </p>
           </div>
         </div>
       </footer>
