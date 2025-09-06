@@ -1,6 +1,10 @@
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 export default function Loading() {
+
+  const { t } = useTranslation()
+
   return (
     <div className="min-h-screen bg-bazari-black flex items-center justify-center">
       <div className="text-center">
@@ -23,7 +27,7 @@ export default function Loading() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          Carregando...
+          {t('common.loading') || 'Carregando...'}
         </motion.p>
       </div>
     </div>

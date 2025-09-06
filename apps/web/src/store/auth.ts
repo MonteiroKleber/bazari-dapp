@@ -3,12 +3,19 @@
 // ✅ Sem token em localStorage (prevenção XSS)
 // ✅ Usa cookies httpOnly via credentials: 'include'
 // ✅ Corrige lockVault() → lock()
+// ✅ ADICIONADO: Sincronização com wallet
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useWalletStore } from './wallet'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
+
+// Função para verificar se está autenticado baseado na wallet
+const checkWalletAuth = (): boolean => {
+  const walletState = useWalletStore.getState()
+  return walletState.isInitialized && !walletState.isLocked
+}
 
 interface User {
   id: string
@@ -44,9 +51,9 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      // Initial state
+      // Initial state - MODIFICADO para verificar wallet
       user: null,
-      isAuthenticated: false,
+      isAuthenticated: checkWalletAuth(), // Verifica se wallet está desbloqueada
       isLoading: false,
       error: null,
       lastCheckAt: 0,
@@ -360,41 +367,41 @@ export const useAuthStore = create<AuthState>()(
           set({ lastCheckAt: Date.now() })
         } catch (error) {
           console.error('Session refresh error:', error)
+          
           // If refresh fails, logout
-          await get().logout()
+          get().logout()
         }
       },
       
-      // Update profile
+      // Update user profile
       updateProfile: async (data: Partial<User>) => {
-        const { user } = get()
-        if (!user) return
-        
-        set({ isLoading: true })
+        set({ isLoading: true, error: null })
         
         try {
-          const response = await fetch(`${API_URL}/api/users/${user.id}`, {
+          const response = await fetch(`${API_URL}/api/auth/profile`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include', // Use cookie
+            credentials: 'include',
             body: JSON.stringify(data)
           })
           
           if (!response.ok) {
-            throw new Error('Failed to update profile')
+            throw new Error('Profile update failed')
           }
           
-          const updatedUser = await response.json()
+          const { user } = await response.json()
           
           set({
-            user: updatedUser,
+            user,
             isLoading: false
           })
         } catch (error: any) {
           set({
-            error: error.message,
-            isLoading: false
+            isLoading: false,
+            error: error.message
           })
+          
+          throw error
         }
       },
       
@@ -404,27 +411,12 @@ export const useAuthStore = create<AuthState>()(
       }
     }),
     {
-      name: 'bazari-auth-store',
+      name: 'auth-store',
       partialize: (state) => ({
         user: state.user,
-        isAuthenticated: state.isAuthenticated
-        // ❌ NO token stored!
+        isAuthenticated: state.isAuthenticated,
+        lastCheckAt: state.lastCheckAt
       })
     }
   )
 )
-
-// Auto-check auth on app start (call in App.tsx)
-export async function initializeAuth() {
-  const store = useAuthStore.getState()
-  await store.checkAuth()
-  
-  // Refresh session every 5 minutes
-  setInterval(async () => {
-    if (store.isAuthenticated) {
-      await store.refreshSession()
-    }
-  }, 5 * 60 * 1000)
-  
-  console.log('✅ Auth initialized with cookie-based sessions')
-}

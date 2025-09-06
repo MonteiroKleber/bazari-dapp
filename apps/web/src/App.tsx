@@ -9,6 +9,8 @@ const Auth = lazy(() => import('./pages/Auth'))
 const Wallet = lazy(() => import('./pages/Wallet'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 
+// Importar o componente de proteção
+const PrivateRoute = lazy(() => import('./components/PrivateRoute'))
 
 // Componente de Loading
 function LoadingSpinner() {
@@ -42,10 +44,17 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/auth" element={<Auth />} />
         
-        {/* Rotas Protegidas (adicionar proteção depois) */}
-        <Route path="/wallet" element={<Wallet />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-
+        {/* Rotas Protegidas */}
+        <Route path="/wallet" element={
+          <PrivateRoute>
+            <Wallet />
+          </PrivateRoute>
+        } />
+        <Route path="/dashboard" element={
+          <PrivateRoute>
+            <Dashboard />
+          </PrivateRoute>
+        } />
         
         {/* Rota 404 - Redirecionar para home */}
         <Route path="*" element={<Navigate to="/" replace />} />
