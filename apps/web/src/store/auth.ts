@@ -1,306 +1,382 @@
-// Arquivo: apps/web/src/store/auth.ts
-// Store de gerenciamento de autenticação
+// apps/web/src/store/auth.ts
+// Auth Store com Cookie-Based Authentication (Zero-Knowledge)
+// ✅ Sem token em localStorage (prevenção XSS)
+// ✅ Usa cookies httpOnly via credentials: 'include'
+// ✅ Corrige lockVault() → lock()
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useWalletStore } from './wallet'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
 
 interface User {
   id: string
   walletAddress: string
   username?: string
   email?: string
-  name?: string
-  bio?: string
-  avatar?: string
-  role: string
-  verified: boolean
+  createdAt: string
+  updatedAt: string
+  role?: string
 }
 
 interface AuthState {
+  // State
   user: User | null
-  token: string | null
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
   
-  // Ações
-  login: () => Promise<boolean>
-  register: (data: {
-    username?: string
-    email?: string
-    termsAccepted: boolean
-    termsVersion: string
-  }) => Promise<boolean>
+  // Session management (no token stored!)
+  lastCheckAt: number
+  
+  // Actions
+  login: (password: string) => Promise<void>
+  register: (password: string, username?: string, email?: string) => Promise<void>
   logout: () => Promise<void>
-  refreshToken: () => Promise<void>
+  checkAuth: () => Promise<void>
+  refreshSession: () => Promise<void>
   updateProfile: (data: Partial<User>) => Promise<void>
   clearError: () => void
+  importWallet: (seedPhrase: string, password: string) => Promise<void>
 }
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
+      // Initial state
       user: null,
-      token: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      lastCheckAt: 0,
       
-      login: async () => {
+      // Login with zero-knowledge proof
+      login: async (password: string) => {
+        set({ isLoading: true, error: null })
+        
         try {
-          set({ isLoading: true, error: null })
-          console.log('Starting login process...')
+          const walletStore = useWalletStore.getState()
           
-          // Importar o store de wallet
-          const { getState } = useWalletStore
-          const walletState = getState()
+          // 1. Unlock wallet locally
+          await walletStore.unlock(password)
           
-          if (!walletState.activeAccount) {
-            throw new Error('Nenhuma conta ativa na carteira')
+          const address = walletStore.activeAccount?.address
+          if (!address) {
+            throw new Error('No wallet found')
           }
           
-          const walletAddress = walletState.activeAccount.address
-          console.log('Wallet address:', walletAddress)
-          
-          // 1. Solicitar nonce do backend
-          console.log('Requesting nonce from backend...')
+          // 2. Get nonce from server
           const nonceResponse = await fetch(`${API_URL}/api/auth/nonce`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ walletAddress })
+            credentials: 'include', // Critical for cookies
+            body: JSON.stringify({ walletAddress: address })
           })
           
           if (!nonceResponse.ok) {
-            const error = await nonceResponse.json()
-            throw new Error(error.message || 'Falha ao obter nonce')
+            throw new Error('Failed to get nonce')
           }
           
-          const { message, nonce } = await nonceResponse.json()
-          console.log('Received nonce:', nonce)
-          console.log('Message to sign:', message)
+          const { nonce } = await nonceResponse.json()
           
-          // 2. Assinar mensagem com a wallet
-          console.log('Signing message with wallet...')
-          const signature = await walletState.signMessage(walletAddress, message)
-          console.log('Signature generated:', signature)
+          // 3. Create and sign message
+          const message = JSON.stringify({
+            action: 'login',
+            timestamp: new Date().toISOString(),
+            nonce,
+            domain: window.location.origin
+          })
           
-          // 3. Fazer login com assinatura
-          console.log('Sending login request...')
-          const loginResponse = await fetch(`${API_URL}/api/auth/login`, {
+          const signature = await walletStore.signMessage(message)
+          
+          // 4. Login with signature (NO PASSWORD!)
+          const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // Cookie will be set
             body: JSON.stringify({
-              walletAddress,
+              walletAddress: address,
+              signature,
+              message
+              // ❌ NO password sent!
+            })
+          })
+          
+          if (!response.ok) {
+            const error = await response.json()
+            throw new Error(error.message || 'Login failed')
+          }
+          
+          const { user } = await response.json()
+          
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            lastCheckAt: Date.now()
+          })
+          
+          console.log('✅ Logged in with zero-knowledge proof')
+        } catch (error: any) {
+          // Lock wallet on error
+          const walletStore = useWalletStore.getState()
+          walletStore.lock() // ✅ Fixed: was lockVault()
+          
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: error.message
+          })
+          
+          throw error
+        }
+      },
+      
+      // Register with zero-knowledge
+      register: async (password: string, username?: string, email?: string) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const walletStore = useWalletStore.getState()
+          
+          // 1. Create wallet locally
+          const { address } = await walletStore.createWallet(password)
+          
+          // 2. Get nonce
+          const nonceResponse = await fetch(`${API_URL}/api/auth/nonce`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ walletAddress: address })
+          })
+          
+          if (!nonceResponse.ok) {
+            throw new Error('Failed to get nonce')
+          }
+          
+          const { nonce } = await nonceResponse.json()
+          
+          // 3. Sign message
+          const message = JSON.stringify({
+            action: 'register',
+            timestamp: new Date().toISOString(),
+            nonce,
+            domain: window.location.origin
+          })
+          
+          const signature = await walletStore.signMessage(message)
+          
+          // 4. Register with signature only
+          const response = await fetch(`${API_URL}/api/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // Cookie will be set
+            body: JSON.stringify({
+              walletAddress: address,
+              signature,
+              message,
+              username,
+              email
+              // ❌ NO seed or password!
+            })
+          })
+          
+          if (!response.ok) {
+            const error = await response.json()
+            throw new Error(error.message || 'Registration failed')
+          }
+          
+          const { user } = await response.json()
+          
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            lastCheckAt: Date.now()
+          })
+          
+          console.log('✅ Registered with zero-knowledge proof')
+        } catch (error: any) {
+          const walletStore = useWalletStore.getState()
+          walletStore.lock()
+          
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: error.message
+          })
+          
+          throw error
+        }
+      },
+      
+      // Import wallet
+      importWallet: async (seedPhrase: string, password: string) => {
+        set({ isLoading: true, error: null })
+        
+        try {
+          const walletStore = useWalletStore.getState()
+          
+          // 1. Import wallet locally
+          const { address } = await walletStore.importWallet(seedPhrase, password)
+          
+          // 2-4. Same flow as login
+          const nonceResponse = await fetch(`${API_URL}/api/auth/nonce`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ walletAddress: address })
+          })
+          
+          if (!nonceResponse.ok) {
+            throw new Error('Failed to get nonce')
+          }
+          
+          const { nonce } = await nonceResponse.json()
+          
+          const message = JSON.stringify({
+            action: 'import',
+            timestamp: new Date().toISOString(),
+            nonce,
+            domain: window.location.origin
+          })
+          
+          const signature = await walletStore.signMessage(message)
+          
+          const response = await fetch(`${API_URL}/api/auth/import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              walletAddress: address,
               signature,
               message
             })
           })
           
-          if (!loginResponse.ok) {
-            const error = await loginResponse.json()
-            throw new Error(error.message || 'Falha no login')
+          if (!response.ok) {
+            const error = await response.json()
+            throw new Error(error.message || 'Import failed')
           }
           
-          const { user, token } = await loginResponse.json()
-          console.log('Login successful!', user)
+          const { user } = await response.json()
           
           set({
             user,
-            token,
             isAuthenticated: true,
             isLoading: false,
-            error: null
+            error: null,
+            lastCheckAt: Date.now()
           })
-          
-          return true
         } catch (error: any) {
-          console.error('Login error:', error)
-          set({
-            error: error.message || 'Falha no login',
-            isLoading: false,
-            isAuthenticated: false
-          })
-          return false
-        }
-      },
-      
-      register: async (data) => {
-        try {
-          set({ isLoading: true, error: null })
-          console.log('Starting registration process...')
-          
-          // Importar o store de wallet
-          const { getState } = useWalletStore
-          const walletState = getState()
-          
-          if (!walletState.activeAccount) {
-            throw new Error('Nenhuma conta ativa na carteira')
-          }
-          
-          const walletAddress = walletState.activeAccount.address
-          console.log('Wallet address:', walletAddress)
-          
-          // 1. Solicitar nonce do backend
-          console.log('Requesting nonce from backend...')
-          const nonceResponse = await fetch(`${API_URL}/api/auth/nonce`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ walletAddress })
-          })
-          
-          if (!nonceResponse.ok) {
-            const errorText = await nonceResponse.text()
-            console.error('Nonce request failed:', errorText)
-            
-            // Tentar parsear como JSON
-            try {
-              const error = JSON.parse(errorText)
-              throw new Error(error.message || 'Falha ao obter nonce')
-            } catch {
-              throw new Error('Falha ao obter nonce: ' + errorText)
-            }
-          }
-          
-          const { message, nonce } = await nonceResponse.json()
-          console.log('Received nonce:', nonce)
-          console.log('Message to sign:', message)
-          
-          // 2. Assinar mensagem com a wallet
-          console.log('Signing message with wallet...')
-          const signature = await walletState.signMessage(walletAddress, message)
-          console.log('Signature generated:', signature)
-          
-          // 3. Registrar com assinatura
-          console.log('Sending registration request with data:', {
-            walletAddress,
-            username: data.username,
-            email: data.email,
-            termsAccepted: data.termsAccepted,
-            termsVersion: data.termsVersion
-          })
-          
-          const registerResponse = await fetch(`${API_URL}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              walletAddress,
-              signature,
-              message,
-              username: data.username,
-              email: data.email,
-              termsAccepted: data.termsAccepted,
-              termsVersion: data.termsVersion
-            })
-          })
-          
-          if (!registerResponse.ok) {
-            const errorText = await registerResponse.text()
-            console.error('Registration failed:', errorText)
-            
-            try {
-              const error = JSON.parse(errorText)
-              throw new Error(error.message || 'Falha no registro')
-            } catch {
-              throw new Error('Falha no registro: ' + errorText)
-            }
-          }
-          
-          const { user, token } = await registerResponse.json()
-          console.log('Registration successful!', user)
-          
-          set({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null
-          })
-          
-          return true
-        } catch (error: any) {
-          console.error('Registration error:', error)
-          set({
-            error: error.message || 'Falha no registro',
-            isLoading: false,
-            isAuthenticated: false
-          })
-          return false
-        }
-      },
-      
-      logout: async () => {
-        try {
-          set({ isLoading: true })
-          
-          const { token } = get()
-          if (token) {
-            // Notificar backend do logout
-            await fetch(`${API_URL}/api/auth/logout`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              }
-            }).catch(() => {}) // Ignorar erros no logout
-          }
-          
-          // Bloquear wallet
-          const { getState } = useWalletStore
-          const walletState = getState()
-          await walletState.lockVault()
+          const walletStore = useWalletStore.getState()
+          walletStore.lock()
           
           set({
             user: null,
-            token: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: error.message
+          })
+          
+          throw error
+        }
+      },
+      
+      // Logout
+      logout: async () => {
+        set({ isLoading: true })
+        
+        try {
+          // Notify backend to clear session cookie
+          await fetch(`${API_URL}/api/auth/logout`, {
+            method: 'POST',
+            credentials: 'include' // Important for cookie
+          })
+        } catch (error) {
+          console.error('Logout error:', error)
+        } finally {
+          // Always clear local state
+          const walletStore = useWalletStore.getState()
+          walletStore.lock() // ✅ Fixed: was lockVault()
+          
+          set({
+            user: null,
             isAuthenticated: false,
             isLoading: false,
             error: null
           })
-        } catch (error: any) {
-          set({
-            error: error.message,
-            isLoading: false
-          })
         }
       },
       
-      refreshToken: async () => {
-        const { token } = get()
-        if (!token) return
-        
+      // Check authentication status
+      checkAuth: async () => {
         try {
-          const response = await fetch(`${API_URL}/api/auth/refresh`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
+          const response = await fetch(`${API_URL}/api/auth/me`, {
+            method: 'GET',
+            credentials: 'include' // Use cookie
           })
           
           if (response.ok) {
-            const { token: newToken } = await response.json()
-            set({ token: newToken })
+            const { user } = await response.json()
+            
+            set({
+              user,
+              isAuthenticated: true,
+              lastCheckAt: Date.now()
+            })
+          } else {
+            set({
+              user: null,
+              isAuthenticated: false
+            })
           }
         } catch (error) {
-          console.error('Failed to refresh token:', error)
+          console.error('Auth check error:', error)
+          set({
+            user: null,
+            isAuthenticated: false
+          })
         }
       },
       
+      // Refresh session
+      refreshSession: async () => {
+        try {
+          const response = await fetch(`${API_URL}/api/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include'
+          })
+          
+          if (!response.ok) {
+            throw new Error('Session refresh failed')
+          }
+          
+          set({ lastCheckAt: Date.now() })
+        } catch (error) {
+          console.error('Session refresh error:', error)
+          // If refresh fails, logout
+          await get().logout()
+        }
+      },
+      
+      // Update profile
       updateProfile: async (data: Partial<User>) => {
-        const { token, user } = get()
-        if (!token || !user) return
+        const { user } = get()
+        if (!user) return
+        
+        set({ isLoading: true })
         
         try {
-          set({ isLoading: true })
-          
           const response = await fetch(`${API_URL}/api/users/${user.id}`, {
             method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include', // Use cookie
             body: JSON.stringify(data)
           })
           
@@ -322,6 +398,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
       
+      // Clear error
       clearError: () => {
         set({ error: null })
       }
@@ -330,12 +407,24 @@ export const useAuthStore = create<AuthState>()(
       name: 'bazari-auth-store',
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
         isAuthenticated: state.isAuthenticated
+        // ❌ NO token stored!
       })
     }
   )
 )
 
-// Import do store de wallet (deve estar no mesmo diretório)
-import { useWalletStore } from './wallet'
+// Auto-check auth on app start (call in App.tsx)
+export async function initializeAuth() {
+  const store = useAuthStore.getState()
+  await store.checkAuth()
+  
+  // Refresh session every 5 minutes
+  setInterval(async () => {
+    if (store.isAuthenticated) {
+      await store.refreshSession()
+    }
+  }, 5 * 60 * 1000)
+  
+  console.log('✅ Auth initialized with cookie-based sessions')
+}

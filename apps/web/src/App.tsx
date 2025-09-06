@@ -8,11 +8,18 @@ import Dashboard from '@/pages/Dashboard'
 import Wallet from '@/pages/Wallet'
 import Layout from './components/Layout'
 
+import { initializeActivityListeners } from '@/store/wallet'
+import { initializeAuth } from '@/store/auth'
+
 function App() {
   const { isInitialized, isLocked, connectBlockchain } = useWalletStore()
   const location = useLocation()
 
   useEffect(() => {
+
+    initializeActivityListeners() // Auto-lock
+    initializeAuth() // Session check
+    
     // Auto-connect to blockchain if wallet is initialized and unlocked
     const initializeApp = async () => {
       if (isInitialized && !isLocked) {

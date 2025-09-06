@@ -1,5 +1,6 @@
 // apps/web/src/services/auth.ts
-// Serviço de autenticação com segurança completa
+// Serviço de autenticação com Zero-Knowledge - SEGURO PARA PRODUÇÃO
+// ⚠️ NUNCA envia seed ou senha para o backend
 
 import { useWalletStore } from '@/store/wallet'
 
@@ -7,111 +8,102 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
 
 interface AuthResponse {
   success: boolean
-  token?: string
   user?: {
     id: string
     walletAddress: string
+    username?: string
+    email?: string
   }
   error?: string
   message?: string
 }
 
+interface NonceResponse {
+  nonce: string
+  timestamp: string
+  message: string
+}
+
 class AuthService {
-  private token: string | null = null
-  
-  constructor() {
-    // Load token from localStorage
-    this.token = localStorage.getItem('bazari_token')
+  /**
+   * Get authentication nonce from server
+   * This prevents replay attacks
+   */
+  async getNonce(walletAddress: string): Promise<NonceResponse> {
+    const response = await fetch(`${API_URL}/api/auth/nonce`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Important for cookies
+      body: JSON.stringify({ walletAddress })
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to get nonce')
+    }
+    
+    return response.json()
   }
   
   /**
-   * Generate nonce for signature
+   * Create message for signing with domain validation
    */
-  private generateNonce(): string {
-    return Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
-  }
-  
-  /**
-   * Create message for signing
-   */
-  private createSignMessage(action: string): string {
+  private createSignMessage(action: string, nonce: string): string {
     return JSON.stringify({
       action,
       timestamp: new Date().toISOString(),
-      nonce: this.generateNonce(),
-      domain: window.location.origin
+      nonce,
+      domain: window.location.origin, // Critical for security
+      chainId: 'bazari-mainnet' // Or testnet
     })
   }
   
   /**
-   * Set auth token
+   * Register new user - Zero-Knowledge approach
+   * ✅ Creates wallet locally
+   * ✅ Sends only address and signature
+   * ❌ NEVER sends seed or password
    */
-  private setToken(token: string): void {
-    this.token = token
-    localStorage.setItem('bazari_token', token)
-  }
-  
-  /**
-   * Clear auth token
-   */
-  private clearToken(): void {
-    this.token = null
-    localStorage.removeItem('bazari_token')
-  }
-  
-  /**
-   * Get auth headers
-   */
-  getAuthHeaders(): HeadersInit {
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json'
-    }
-    
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`
-    }
-    
-    return headers
-  }
-  
-  /**
-   * Register new user
-   */
-  async register(password: string): Promise<AuthResponse> {
+  async register(
+    password: string, 
+    username?: string,
+    email?: string
+  ): Promise<AuthResponse> {
     try {
-      // Create wallet
+      // 1. Create wallet locally (seed never leaves device)
       const walletStore = useWalletStore.getState()
-      const { mnemonic, address } = await walletStore.createWallet(password)
+      const { address } = await walletStore.createWallet(password)
       
-      // Create and sign message
-      const message = this.createSignMessage('register')
+      // 2. Get nonce from server
+      const { nonce, message: serverMessage } = await this.getNonce(address)
+      
+      // 3. Create and sign message locally
+      const message = this.createSignMessage('register', nonce)
       const signature = await walletStore.signMessage(message)
       
-      // Register with backend
-      const response = await fetch(`${API_URL}/auth/register`, {
+      // 4. Send ONLY public data to backend
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Use cookies for session
         body: JSON.stringify({
           walletAddress: address,
           signature,
           message,
-          seed: mnemonic, // Backend will encrypt this
-          password // Backend will use this for additional encryption
+          username,
+          email,
+          // ❌ REMOVED: seed, password - NEVER send these!
         })
       })
       
       const data = await response.json()
       
       if (!response.ok) {
+        // If registration fails, lock wallet
+        walletStore.lock()
         throw new Error(data.message || 'Registration failed')
       }
       
-      if (data.token) {
-        this.setToken(data.token)
-      }
-      
+      console.log('✅ User registered with zero-knowledge proof')
       return data
     } catch (error) {
       console.error('Registration error:', error)
@@ -120,43 +112,40 @@ class AuthService {
   }
   
   /**
-   * Login existing user
+   * Login existing user - Zero-Knowledge approach
+   * ✅ Unlocks wallet locally with password
+   * ✅ Signs challenge with local key
+   * ❌ NEVER sends password to server
    */
-  async login(address: string, password: string): Promise<AuthResponse> {
+  async login(password: string): Promise<AuthResponse> {
     try {
-      // Create and sign message
-      const message = this.createSignMessage('login')
-      
-      // Get wallet store and unlock
       const walletStore = useWalletStore.getState()
       
-      // If wallet not initialized, we need to fetch encrypted seed from backend first
-      if (!walletStore.isInitialized) {
-        // First, make a pre-auth request to check if user exists
-        const checkResponse = await fetch(`${API_URL}/auth/check`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddress: address })
-        })
-        
-        if (!checkResponse.ok) {
-          throw new Error('Usuário não encontrado')
-        }
+      // 1. Unlock wallet locally (password never leaves device)
+      await walletStore.unlock(password)
+      const address = walletStore.activeAccount?.address
+      
+      if (!address) {
+        throw new Error('No wallet found')
       }
       
-      // Unlock wallet and sign
-      await walletStore.unlock(password)
+      // 2. Get nonce from server
+      const { nonce } = await this.getNonce(address)
+      
+      // 3. Create and sign message locally
+      const message = this.createSignMessage('login', nonce)
       const signature = await walletStore.signMessage(message)
       
-      // Login with backend
-      const response = await fetch(`${API_URL}/auth/login`, {
+      // 4. Send ONLY signature proof to backend
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Use cookies for session
         body: JSON.stringify({
           walletAddress: address,
           signature,
-          message,
-          password // Backend will verify password against encrypted seed
+          message
+          // ❌ REMOVED: password - NEVER send!
         })
       })
       
@@ -167,10 +156,7 @@ class AuthService {
         throw new Error(data.message || 'Login failed')
       }
       
-      if (data.token) {
-        this.setToken(data.token)
-      }
-      
+      console.log('✅ User logged in with zero-knowledge proof')
       return data
     } catch (error) {
       console.error('Login error:', error)
@@ -180,23 +166,19 @@ class AuthService {
   
   /**
    * Logout user
+   * Clears server session and locks wallet locally
    */
   async logout(): Promise<void> {
     try {
-      // Call backend logout
-      if (this.token) {
-        await fetch(`${API_URL}/auth/logout`, {
-          method: 'POST',
-          headers: this.getAuthHeaders()
-        })
-      }
+      // Notify backend to clear session
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include' // Important for cookies
+      })
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      // Clear local state regardless of backend response
-      this.clearToken()
-      
-      // Lock wallet
+      // Always lock wallet locally, regardless of server response
       const walletStore = useWalletStore.getState()
       walletStore.lock()
     }
@@ -206,100 +188,166 @@ class AuthService {
    * Verify if user is authenticated
    */
   async verifyAuth(): Promise<boolean> {
-    if (!this.token) {
-      return false
-    }
-    
     try {
-      const response = await fetch(`${API_URL}/auth/verify`, {
+      const response = await fetch(`${API_URL}/api/auth/verify`, {
         method: 'GET',
-        headers: this.getAuthHeaders()
+        credentials: 'include' // Use cookies
       })
       
-      if (!response.ok) {
-        this.clearToken()
-        return false
-      }
-      
-      return true
+      return response.ok
     } catch (error) {
       console.error('Auth verification error:', error)
-      this.clearToken()
       return false
     }
   }
   
   /**
-   * Get current auth token
+   * Refresh authentication session
    */
-  getToken(): string | null {
-    return this.token
-  }
-  
-  /**
-   * Check if user is authenticated
-   */
-  isAuthenticated(): boolean {
-    return this.token !== null
-  }
-  
-  /**
-   * Recover wallet seed (requires password)
-   */
-  async recoverSeed(password: string): Promise<string> {
-    if (!this.token) {
-      throw new Error('Not authenticated')
-    }
-    
+  async refreshSession(): Promise<void> {
     try {
-      const response = await fetch(`${API_URL}/wallet/seed`, {
-        method: 'GET',
-        headers: {
-          ...this.getAuthHeaders(),
-          'X-Wallet-Password': password
-        }
+      const response = await fetch(`${API_URL}/api/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include'
       })
       
-      const data = await response.json()
-      
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to recover seed')
+        throw new Error('Session refresh failed')
+      }
+    } catch (error) {
+      console.error('Session refresh error:', error)
+      throw error
+    }
+  }
+  
+  /**
+   * Recover wallet seed - 100% LOCAL
+   * ✅ Uses encrypted seed stored locally
+   * ❌ NEVER contacts server for seed
+   */
+  async recoverSeed(password: string): Promise<string> {
+    try {
+      const walletStore = useWalletStore.getState()
+      
+      // Get encrypted seed from local storage
+      const { encryptedSeed, salt, iv } = walletStore
+      
+      if (!encryptedSeed || !salt || !iv) {
+        throw new Error('No encrypted seed found locally')
       }
       
-      // Decrypt the transport-encrypted seed
-      const transportKey = Uint8Array.from(atob(data.transportKey), c => c.charCodeAt(0))
-      const transportIv = Uint8Array.from(atob(data.transportIv), c => c.charCodeAt(0))
-      const transportAuthTag = Uint8Array.from(atob(data.transportAuthTag), c => c.charCodeAt(0))
-      const encryptedSeed = Uint8Array.from(atob(data.encryptedSeed), c => c.charCodeAt(0))
+      // Decrypt locally using WebCrypto API
+      const encoder = new TextEncoder()
+      const passwordBuffer = encoder.encode(password)
       
-      // Import transport key
-      const key = await crypto.subtle.importKey(
+      // Import password as key
+      const passwordKey = await crypto.subtle.importKey(
         'raw',
-        transportKey,
+        passwordBuffer,
+        'PBKDF2',
+        false,
+        ['deriveKey']
+      )
+      
+      // Derive decryption key
+      const key = await crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt: Uint8Array.from(atob(salt), c => c.charCodeAt(0)),
+          iterations: 310000, // Updated to stronger iteration count
+          hash: 'SHA-256'
+        },
+        passwordKey,
         { name: 'AES-GCM', length: 256 },
         false,
         ['decrypt']
       )
       
-      // Create combined ciphertext with auth tag
-      const ciphertext = new Uint8Array(encryptedSeed.length + transportAuthTag.length)
-      ciphertext.set(encryptedSeed)
-      ciphertext.set(transportAuthTag, encryptedSeed.length)
+      // Decrypt seed
+      const encryptedBuffer = Uint8Array.from(atob(encryptedSeed), c => c.charCodeAt(0))
+      const ivBuffer = Uint8Array.from(atob(iv), c => c.charCodeAt(0))
       
-      // Decrypt
       const decrypted = await crypto.subtle.decrypt(
-        {
-          name: 'AES-GCM',
-          iv: transportIv
-        },
+        { name: 'AES-GCM', iv: ivBuffer },
         key,
-        ciphertext
+        encryptedBuffer
       )
       
       const decoder = new TextDecoder()
-      return decoder.decode(decrypted)
+      const seed = decoder.decode(decrypted)
+      
+      console.log('✅ Seed recovered locally without server')
+      return seed
     } catch (error) {
       console.error('Seed recovery error:', error)
+      throw new Error('Failed to decrypt seed. Wrong password?')
+    }
+  }
+  
+  /**
+   * Import existing wallet - Zero-Knowledge
+   */
+  async importWallet(
+    seedPhrase: string,
+    password: string
+  ): Promise<AuthResponse> {
+    try {
+      const walletStore = useWalletStore.getState()
+      
+      // 1. Import wallet locally
+      const { address } = await walletStore.importWallet(seedPhrase, password)
+      
+      // 2. Get nonce from server
+      const { nonce } = await this.getNonce(address)
+      
+      // 3. Sign message
+      const message = this.createSignMessage('import', nonce)
+      const signature = await walletStore.signMessage(message)
+      
+      // 4. Register/login with signature only
+      const response = await fetch(`${API_URL}/api/auth/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          walletAddress: address,
+          signature,
+          message
+          // ❌ NEVER send seedPhrase!
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        walletStore.lock()
+        throw new Error(data.message || 'Import failed')
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Import error:', error)
+      throw error
+    }
+  }
+  
+  /**
+   * Get current user info
+   */
+  async getCurrentUser(): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        method: 'GET',
+        credentials: 'include'
+      })
+      
+      if (!response.ok) {
+        throw new Error('Not authenticated')
+      }
+      
+      return response.json()
+    } catch (error) {
+      console.error('Get user error:', error)
       throw error
     }
   }
@@ -309,4 +357,4 @@ class AuthService {
 export const authService = new AuthService()
 
 // Export types
-export type { AuthResponse }
+export type { AuthResponse, NonceResponse }

@@ -1,3 +1,4 @@
+// apps/api/src/plugins/auth.ts
 import fp from 'fastify-plugin'
 import { FastifyRequest, FastifyReply } from 'fastify'
 
@@ -11,56 +12,87 @@ declare module 'fastify' {
     user?: {
       id: string
       walletAddress: string
-      role: string
+      role?: string
     }
   }
 }
 
 export default fp(async (server) => {
-  // Mandatory authentication
+  /**
+   * Mandatory authentication using httpOnly cookies
+   * ✅ Reads session from cookie, not Bearer token
+   * ✅ Validates session in Redis
+   * ✅ Checks blacklist
+   */
   server.decorate('authenticate', async (request, reply) => {
     try {
-      const token = request.headers.authorization?.replace('Bearer ', '')
+      // Read session from httpOnly cookie
+      const sessionId = request.cookies?.session
       
-      if (!token) {
+      if (!sessionId) {
         reply.code(401).send({
           error: 'Unauthorized',
-          message: 'No token provided',
+          message: 'No session cookie found',
         })
         return
       }
 
-      // Check if token is blacklisted
-      const isBlacklisted = await server.redis.get(`blacklist:${token}`)
+      // Check if session is blacklisted
+      const isBlacklisted = await server.redis.get(`blacklist:${sessionId}`)
       if (isBlacklisted) {
+        // Clear the cookie if blacklisted
+        reply.setCookie('session', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 0 // Expire immediately
+        })
+        
         reply.code(401).send({
           error: 'Unauthorized',
-          message: 'Token has been revoked',
+          message: 'Session has been revoked',
         })
         return
       }
 
-      // Verify token
-      const decoded = server.jwt.verify(token) as any
+      // Get session from Redis
+      const sessionData = await server.redis.get(`session:${sessionId}`)
       
-      // Check if session exists
-      const session = await server.prisma.session.findUnique({
-        where: { token },
-      })
-      
-      if (!session) {
+      if (!sessionData) {
+        // Clear invalid cookie
+        reply.setCookie('session', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 0
+        })
+        
         reply.code(401).send({
           error: 'Unauthorized',
-          message: 'Invalid session',
+          message: 'Session expired or invalid',
         })
         return
       }
+      
+      // Parse session data
+      const session = JSON.parse(sessionData)
       
       // Check if session is expired
-      if (new Date(session.expiresAt) < new Date()) {
-        await server.prisma.session.delete({
-          where: { id: session.id },
+      if (session.expiresAt && session.expiresAt < Date.now()) {
+        // Delete expired session
+        await server.redis.del(`session:${sessionId}`)
+        
+        // Clear cookie
+        reply.setCookie('session', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 0
         })
+        
         reply.code(401).send({
           error: 'Unauthorized',
           message: 'Session expired',
@@ -68,9 +100,9 @@ export default fp(async (server) => {
         return
       }
       
-      // Get user
+      // Get user from database
       const user = await server.prisma.user.findUnique({
-        where: { id: decoded.id },
+        where: { id: session.userId },
         select: {
           id: true,
           walletAddress: true,
@@ -89,65 +121,135 @@ export default fp(async (server) => {
       
       // Check if user is banned
       if (user.status === 'BANNED') {
+        // Blacklist the session
+        await server.redis.setex(
+          `blacklist:${sessionId}`,
+          7 * 24 * 60 * 60, // 7 days
+          '1'
+        )
+        
+        // Clear session
+        await server.redis.del(`session:${sessionId}`)
+        
+        // Clear cookie
+        reply.setCookie('session', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 0
+        })
+        
         reply.code(403).send({
           error: 'Forbidden',
-          message: 'Account banned',
+          message: 'Account has been banned',
         })
         return
       }
       
+      // Attach user to request
       request.user = {
         id: user.id,
         walletAddress: user.walletAddress,
-        role: user.role,
+        role: user.role || 'USER',
       }
+      
+      // Optional: Update session activity
+      const updatedSession = {
+        ...session,
+        lastActivityAt: Date.now()
+      }
+      
+      // Refresh session TTL
+      await server.redis.setex(
+        `session:${sessionId}`,
+        7 * 24 * 60 * 60, // 7 days
+        JSON.stringify(updatedSession)
+      )
+      
     } catch (error) {
       server.log.error('Authentication error:', error)
+      
+      // Clear potentially corrupted cookie
+      reply.setCookie('session', '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 0
+      })
+      
       reply.code(401).send({
         error: 'Unauthorized',
-        message: 'Invalid token',
+        message: 'Authentication failed',
       })
     }
   })
 
-  // Optional authentication
+  /**
+   * Optional authentication using httpOnly cookies
+   * ✅ Same as mandatory but doesn't fail if no session
+   */
   server.decorate('authenticateOptional', async (request, reply) => {
     try {
-      const token = request.headers.authorization?.replace('Bearer ', '')
+      // Read session from cookie
+      const sessionId = request.cookies?.session
       
-      if (!token) {
-        return // No token, continue without authentication
+      if (!sessionId) {
+        return // No session, continue without authentication
       }
 
-      // Check if token is blacklisted
-      const isBlacklisted = await server.redis.get(`blacklist:${token}`)
+      // Check if session is blacklisted
+      const isBlacklisted = await server.redis.get(`blacklist:${sessionId}`)
       if (isBlacklisted) {
-        return // Token revoked, continue without authentication
+        // Clear blacklisted cookie silently
+        reply.setCookie('session', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 0
+        })
+        return // Continue without authentication
       }
 
-      // Verify token
-      const decoded = server.jwt.verify(token) as any
+      // Get session from Redis
+      const sessionData = await server.redis.get(`session:${sessionId}`)
       
-      // Check if session exists
-      const session = await server.prisma.session.findUnique({
-        where: { token },
-      })
-      
-      if (!session) {
-        return // Invalid session, continue without authentication
+      if (!sessionData) {
+        // Clear invalid cookie silently
+        reply.setCookie('session', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 0
+        })
+        return // Continue without authentication
       }
       
-      // Check if session is expired
-      if (new Date(session.expiresAt) < new Date()) {
-        await server.prisma.session.delete({
-          where: { id: session.id },
+      // Parse session
+      const session = JSON.parse(sessionData)
+      
+      // Check if expired
+      if (session.expiresAt && session.expiresAt < Date.now()) {
+        // Clean up expired session
+        await server.redis.del(`session:${sessionId}`)
+        
+        // Clear cookie silently
+        reply.setCookie('session', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 0
         })
-        return // Session expired, continue without authentication
+        return // Continue without authentication
       }
       
       // Get user
       const user = await server.prisma.user.findUnique({
-        where: { id: decoded.id },
+        where: { id: session.userId },
         select: {
           id: true,
           walletAddress: true,
@@ -157,17 +259,106 @@ export default fp(async (server) => {
       })
       
       if (!user || user.status === 'BANNED') {
-        return // User not found or banned, continue without authentication
+        // If user not found or banned, clean up silently
+        if (user?.status === 'BANNED') {
+          await server.redis.setex(`blacklist:${sessionId}`, 7 * 24 * 60 * 60, '1')
+          await server.redis.del(`session:${sessionId}`)
+        }
+        
+        // Clear cookie
+        reply.setCookie('session', '', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 0
+        })
+        return // Continue without authentication
       }
       
+      // Attach user to request
       request.user = {
         id: user.id,
         walletAddress: user.walletAddress,
-        role: user.role,
+        role: user.role || 'USER',
       }
+      
+      // Update session activity
+      const updatedSession = {
+        ...session,
+        lastActivityAt: Date.now()
+      }
+      
+      // Refresh session TTL
+      await server.redis.setex(
+        `session:${sessionId}`,
+        7 * 24 * 60 * 60,
+        JSON.stringify(updatedSession)
+      )
+      
     } catch (error) {
-      // Invalid token, continue without authentication
+      // Log but don't fail for optional auth
       server.log.debug('Optional auth failed:', error)
+      
+      // Clear potentially corrupted cookie silently
+      reply.setCookie('session', '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 0
+      })
+      // Continue without authentication
     }
   })
+  
+  /**
+   * Helper to blacklist a session (for logout, ban, etc)
+   */
+  server.decorate('blacklistSession', async (sessionId: string) => {
+    if (!sessionId) return
+    
+    // Add to blacklist
+    await server.redis.setex(
+      `blacklist:${sessionId}`,
+      7 * 24 * 60 * 60, // 7 days
+      '1'
+    )
+    
+    // Delete session
+    await server.redis.del(`session:${sessionId}`)
+  })
+  
+  /**
+   * Helper to validate session without full authentication
+   */
+  server.decorate('validateSession', async (sessionId: string) => {
+    if (!sessionId) return null
+    
+    // Check blacklist
+    const isBlacklisted = await server.redis.get(`blacklist:${sessionId}`)
+    if (isBlacklisted) return null
+    
+    // Get session
+    const sessionData = await server.redis.get(`session:${sessionId}`)
+    if (!sessionData) return null
+    
+    const session = JSON.parse(sessionData)
+    
+    // Check expiry
+    if (session.expiresAt && session.expiresAt < Date.now()) {
+      await server.redis.del(`session:${sessionId}`)
+      return null
+    }
+    
+    return session
+  })
 })
+
+// Type declarations for new helpers
+declare module 'fastify' {
+  interface FastifyInstance {
+    blacklistSession: (sessionId: string) => Promise<void>
+    validateSession: (sessionId: string) => Promise<any>
+  }
+}

@@ -16,12 +16,6 @@ model User {
   username        String?   @unique
   email           String?   @unique
   
-  // Security
-  encryptedSeed   String    // AES-GCM encrypted seed
-  salt            String    // Salt for key derivation
-  iv              String    // Initialization vector
-  authTag         String    // Authentication tag for AES-GCM
-  
   // Profile
   name            String?
   avatar          String?   // IPFS CID

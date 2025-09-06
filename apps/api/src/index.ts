@@ -4,12 +4,16 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
+import cookie from '@fastify/cookie'
 import { PrismaClient } from '@prisma/client'
 import Redis from 'ioredis'
 import { cryptoWaitReady, signatureVerify } from '@polkadot/util-crypto'
-import { hexToU8a, isHex, u8aToHex, stringToU8a } from '@polkadot/util'
-import bcrypt from 'bcrypt'
+import { hexToU8a, isHex, stringToU8a } from '@polkadot/util'
 import crypto from 'crypto'
+import authRoutes from './routes/auth'
+import walletRoutes from './routes/wallet'
+import userRoutes from './routes/user'
+import authPlugin from './plugins/auth'
 
 // Initialize Polkadot crypto
 await cryptoWaitReady()
@@ -22,22 +26,41 @@ const prisma = new PrismaClient({
 // Initialize Redis
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379')
 
-// Initialize Fastify with Pino logger
+// Initialize Fastify with enhanced security logger
 const app = Fastify({
   logger: {
     level: process.env.LOG_LEVEL || 'info',
     transport: process.env.NODE_ENV === 'development' 
       ? { target: 'pino-pretty', options: { colorize: true } }
-      : undefined
+      : undefined,
+    redact: {
+      paths: [
+        'req.headers.authorization',
+        'req.headers.cookie',
+        'res.headers["set-cookie"]',
+        'req.body.password',
+        'req.body.seed',
+        'req.body.mnemonic',
+        'req.body.encryptedSeed',
+        'req.headers["x-wallet-password"]'
+      ],
+      remove: true
+    }
   }
 })
 
-// Register plugins
+// Register plugins in correct order
 await app.register(cors, {
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
+    ? (process.env.FRONTEND_URL || 'https://app.bazari.xyz')
     : true,
-  credentials: true
+  credentials: true // CRITICAL for cookies
+})
+
+// Register cookie plugin for httpOnly sessions
+await app.register(cookie, {
+  secret: process.env.COOKIE_SECRET || 'change-this-secret-in-production',
+  parseOptions: {}
 })
 
 await app.register(jwt, {
@@ -50,92 +73,20 @@ await app.register(rateLimit, {
   timeWindow: process.env.RATE_LIMIT_WINDOW || '15 minutes'
 })
 
+// Register auth plugin
+await app.register(authPlugin)
+
 // Decorate Fastify with prisma and redis
 app.decorate('prisma', prisma)
 app.decorate('redis', redis)
 
-// ==================== SECURITY UTILITIES ====================
+// ==================== ZERO-KNOWLEDGE UTILITIES ====================
 
-class CryptoManager {
-  /**
-   * Derive encryption key from password using PBKDF2
-   */
-  static async deriveKey(password: string, salt: Buffer): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      crypto.pbkdf2(password, salt, 100000, 32, 'sha256', (err, derivedKey) => {
-        if (err) reject(err)
-        else resolve(derivedKey)
-      })
-    })
-  }
-
-  /**
-   * Encrypt seed using AES-256-GCM
-   */
-  static async encryptSeed(seed: string, password: string): Promise<{
-    encryptedSeed: string
-    salt: string
-    iv: string
-    authTag: string
-  }> {
-    // Generate random salt and IV
-    const salt = crypto.randomBytes(32)
-    const iv = crypto.randomBytes(16)
-    
-    // Derive key from password
-    const key = await this.deriveKey(password, salt)
-    
-    // Create cipher
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
-    
-    // Encrypt seed
-    const encrypted = Buffer.concat([
-      cipher.update(seed, 'utf8'),
-      cipher.final()
-    ])
-    
-    // Get auth tag
-    const authTag = cipher.getAuthTag()
-    
-    return {
-      encryptedSeed: encrypted.toString('base64'),
-      salt: salt.toString('base64'),
-      iv: iv.toString('base64'),
-      authTag: authTag.toString('base64')
-    }
-  }
-
-  /**
-   * Decrypt seed using AES-256-GCM
-   */
-  static async decryptSeed(
-    encryptedSeed: string,
-    password: string,
-    salt: string,
-    iv: string,
-    authTag: string
-  ): Promise<string> {
-    // Convert from base64
-    const encryptedBuffer = Buffer.from(encryptedSeed, 'base64')
-    const saltBuffer = Buffer.from(salt, 'base64')
-    const ivBuffer = Buffer.from(iv, 'base64')
-    const authTagBuffer = Buffer.from(authTag, 'base64')
-    
-    // Derive key from password
-    const key = await this.deriveKey(password, saltBuffer)
-    
-    // Create decipher
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, ivBuffer)
-    decipher.setAuthTag(authTagBuffer)
-    
-    // Decrypt
-    const decrypted = Buffer.concat([
-      decipher.update(encryptedBuffer),
-      decipher.final()
-    ])
-    
-    return decrypted.toString('utf8')
-  }
+/**
+ * Generate secure nonce for preventing replay attacks
+ */
+function generateNonce(): string {
+  return crypto.randomBytes(32).toString('hex')
 }
 
 /**
@@ -164,21 +115,63 @@ async function verifyPolkadotSignature(
 }
 
 /**
- * Generate secure session token
+ * Validate message structure and domain
  */
-function generateSessionToken(): string {
-  return crypto.randomBytes(32).toString('hex')
+function validateMessage(message: string): {
+  valid: boolean
+  action?: string
+  nonce?: string
+  timestamp?: string
+  domain?: string
+} {
+  try {
+    const parsed = JSON.parse(message)
+    
+    // Check required fields
+    if (!parsed.action || !parsed.nonce || !parsed.timestamp || !parsed.domain) {
+      return { valid: false }
+    }
+    
+    // Check timestamp (5 minute window)
+    const messageTime = new Date(parsed.timestamp).getTime()
+    const now = Date.now()
+    
+    if (isNaN(messageTime) || Math.abs(now - messageTime) > 5 * 60 * 1000) {
+      app.log.warn('Message timestamp out of range')
+      return { valid: false }
+    }
+    
+    // Validate domain (CRITICAL for security)
+    const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || ['http://localhost:5173']
+    
+    if (!allowedOrigins.includes(parsed.domain)) {
+      app.log.error(`Invalid domain: ${parsed.domain}. Allowed: ${allowedOrigins.join(', ')}`)
+      return { valid: false }
+    }
+    
+    return {
+      valid: true,
+      action: parsed.action,
+      nonce: parsed.nonce,
+      timestamp: parsed.timestamp,
+      domain: parsed.domain
+    }
+  } catch (error) {
+    app.log.error('Message validation failed:', error)
+    return { valid: false }
+  }
 }
 
 /**
- * Check and mark nonce as used (prevent replay attacks)
+ * Check and consume nonce (prevent replay attacks)
  */
 async function checkNonce(nonce: string): Promise<boolean> {
   const key = `nonce:${nonce}`
   const exists = await redis.get(key)
   
   if (exists) {
-    return false // Nonce already used
+    app.log.warn(`Nonce already used: ${nonce}`)
+    return false
   }
   
   // Mark nonce as used (expire in 5 minutes)
@@ -186,486 +179,51 @@ async function checkNonce(nonce: string): Promise<boolean> {
   return true
 }
 
-// ==================== AUTH ROUTES ====================
-
-app.post('/auth/register', async (request, reply) => {
-  try {
-    const { walletAddress, signature, message, seed, password } = request.body as any
-    
-    // Validate timestamp in message (prevent old signatures)
-    const messageData = JSON.parse(message)
-    const messageTime = new Date(messageData.timestamp).getTime()
-    const now = Date.now()
-    
-    if (now - messageTime > 5 * 60 * 1000) {
-      return reply.code(400).send({
-        error: 'Message expired',
-        message: 'A mensagem expirou. Por favor, tente novamente.'
-      })
-    }
-    
-    // Check nonce
-    const nonceValid = await checkNonce(messageData.nonce)
-    if (!nonceValid) {
-      return reply.code(400).send({
-        error: 'Invalid nonce',
-        message: 'Nonce já utilizado. Por favor, tente novamente.'
-      })
-    }
-    
-    // Verify signature
-    const isValidSignature = await verifyPolkadotSignature(message, signature, walletAddress)
-    
-    if (!isValidSignature) {
-      // Log failed attempt
-      await prisma.authLog.create({
-        data: {
-          action: 'REGISTER',
-          success: false,
-          ipAddress: request.ip,
-          userAgent: request.headers['user-agent'],
-          message: 'Invalid signature'
-        }
-      })
-      
-      return reply.code(401).send({
-        error: 'Invalid signature',
-        message: 'A assinatura não corresponde ao endereço fornecido.'
-      })
-    }
-    
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { walletAddress }
-    })
-    
-    if (existingUser) {
-      return reply.code(409).send({
-        error: 'User already exists',
-        message: 'Este endereço já está registrado.'
-      })
-    }
-    
-    // Encrypt seed with password
-    const encrypted = await CryptoManager.encryptSeed(seed, password)
-    
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        walletAddress,
-        encryptedSeed: encrypted.encryptedSeed,
-        salt: encrypted.salt,
-        iv: encrypted.iv,
-        authTag: encrypted.authTag,
-        lastLoginAt: new Date()
-      }
-    })
-    
-    // Create default account
-    await prisma.account.create({
-      data: {
-        userId: user.id,
-        address: walletAddress,
-        name: 'Principal',
-        derivationPath: '//default',
-        isDefault: true
-      }
-    })
-    
-    // Generate session
-    const sessionToken = generateSessionToken()
-    const jwtToken = app.jwt.sign({ 
-      userId: user.id, 
-      walletAddress,
-      sessionToken 
-    })
-    
-    // Store session in Redis
-    await redis.setex(
-      `session:${sessionToken}`,
-      7 * 24 * 60 * 60, // 7 days
-      JSON.stringify({
-        userId: user.id,
-        walletAddress,
-        ipAddress: request.ip,
-        userAgent: request.headers['user-agent']
-      })
-    )
-    
-    // Create session in database
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        token: sessionToken,
-        ipAddress: request.ip,
-        userAgent: request.headers['user-agent'],
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      }
-    })
-    
-    // Log successful registration
-    await prisma.authLog.create({
-      data: {
-        userId: user.id,
-        action: 'REGISTER',
-        success: true,
-        ipAddress: request.ip,
-        userAgent: request.headers['user-agent']
-      }
-    })
-    
-    app.log.info(`User registered: ${walletAddress}`)
-    
-    return reply.send({
-      success: true,
-      token: jwtToken,
-      user: {
-        id: user.id,
-        walletAddress: user.walletAddress
-      }
-    })
-  } catch (error) {
-    app.log.error('Registration error:', error)
-    return reply.code(500).send({
-      error: 'Registration failed',
-      message: 'Erro ao registrar usuário. Por favor, tente novamente.'
-    })
+/**
+ * Create session in Redis and set cookie
+ */
+async function createSession(userId: string, walletAddress: string, reply: any) {
+  const sessionId = crypto.randomBytes(32).toString('hex')
+  const sessionData = {
+    userId,
+    walletAddress,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
   }
-})
+  
+  // Store in Redis
+  await redis.setex(
+    `session:${sessionId}`,
+    7 * 24 * 60 * 60, // 7 days in seconds
+    JSON.stringify(sessionData)
+  )
+  
+  // Set httpOnly cookie
+  reply.setCookie('session', sessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 // 7 days
+  })
+  
+  return sessionId
+}
 
-app.post('/auth/login', async (request, reply) => {
-  try {
-    const { walletAddress, signature, message, password } = request.body as any
-    
-    // Validate timestamp
-    const messageData = JSON.parse(message)
-    const messageTime = new Date(messageData.timestamp).getTime()
-    const now = Date.now()
-    
-    if (now - messageTime > 5 * 60 * 1000) {
-      return reply.code(400).send({
-        error: 'Message expired',
-        message: 'A mensagem expirou. Por favor, tente novamente.'
-      })
-    }
-    
-    // Check nonce
-    const nonceValid = await checkNonce(messageData.nonce)
-    if (!nonceValid) {
-      return reply.code(400).send({
-        error: 'Invalid nonce',
-        message: 'Nonce já utilizado. Por favor, tente novamente.'
-      })
-    }
-    
-    // Verify signature
-    const isValidSignature = await verifyPolkadotSignature(message, signature, walletAddress)
-    
-    if (!isValidSignature) {
-      // Log failed attempt
-      await prisma.authLog.create({
-        data: {
-          action: 'LOGIN',
-          success: false,
-          ipAddress: request.ip,
-          userAgent: request.headers['user-agent'],
-          message: 'Invalid signature'
-        }
-      })
-      
-      return reply.code(401).send({
-        error: 'Invalid signature',
-        message: 'A assinatura não corresponde ao endereço fornecido.'
-      })
-    }
-    
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { walletAddress }
-    })
-    
-    if (!user) {
-      await prisma.authLog.create({
-        data: {
-          action: 'LOGIN',
-          success: false,
-          ipAddress: request.ip,
-          userAgent: request.headers['user-agent'],
-          message: 'User not found'
-        }
-      })
-      
-      return reply.code(404).send({
-        error: 'User not found',
-        message: 'Usuário não encontrado. Por favor, registre-se primeiro.'
-      })
-    }
-    
-    // Try to decrypt seed to verify password
-    try {
-      await CryptoManager.decryptSeed(
-        user.encryptedSeed,
-        password,
-        user.salt,
-        user.iv,
-        user.authTag
-      )
-    } catch (error) {
-      await prisma.authLog.create({
-        data: {
-          userId: user.id,
-          action: 'LOGIN',
-          success: false,
-          ipAddress: request.ip,
-          userAgent: request.headers['user-agent'],
-          message: 'Invalid password'
-        }
-      })
-      
-      return reply.code(401).send({
-        error: 'Invalid password',
-        message: 'Senha incorreta.'
-      })
-    }
-    
-    // Update last login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() }
-    })
-    
-    // Generate session
-    const sessionToken = generateSessionToken()
-    const jwtToken = app.jwt.sign({ 
-      userId: user.id, 
-      walletAddress,
-      sessionToken 
-    })
-    
-    // Store session in Redis
-    await redis.setex(
-      `session:${sessionToken}`,
-      7 * 24 * 60 * 60, // 7 days
-      JSON.stringify({
-        userId: user.id,
-        walletAddress,
-        ipAddress: request.ip,
-        userAgent: request.headers['user-agent']
-      })
-    )
-    
-    // Create session in database
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        token: sessionToken,
-        ipAddress: request.ip,
-        userAgent: request.headers['user-agent'],
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      }
-    })
-    
-    // Log successful login
-    await prisma.authLog.create({
-      data: {
-        userId: user.id,
-        action: 'LOGIN',
-        success: true,
-        ipAddress: request.ip,
-        userAgent: request.headers['user-agent']
-      }
-    })
-    
-    app.log.info(`User logged in: ${walletAddress}`)
-    
-    return reply.send({
-      success: true,
-      token: jwtToken,
-      user: {
-        id: user.id,
-        walletAddress: user.walletAddress
-      },
-      seed: null // Never return seed
-    })
-  } catch (error) {
-    app.log.error('Login error:', error)
-    return reply.code(500).send({
-      error: 'Login failed',
-      message: 'Erro ao fazer login. Por favor, tente novamente.'
-    })
-  }
-})
+// ==================== REGISTER ROUTES WITH API PREFIX ====================
 
-app.post('/auth/logout', async (request, reply) => {
-  try {
-    // Verify JWT
-    await request.jwtVerify()
-    const { sessionToken } = request.user as any
-    
-    // Remove session from Redis
-    await redis.del(`session:${sessionToken}`)
-    
-    // Remove session from database
-    await prisma.session.deleteMany({
-      where: { token: sessionToken }
-    })
-    
-    app.log.info(`User logged out: ${(request.user as any).walletAddress}`)
-    
-    return reply.send({ success: true })
-  } catch (error) {
-    app.log.error('Logout error:', error)
-    return reply.code(500).send({
-      error: 'Logout failed',
-      message: 'Erro ao fazer logout.'
-    })
-  }
-})
+// Auth routes
+await app.register(authRoutes, { prefix: '/api/auth' })
 
-// ==================== WALLET ROUTES ====================
+// Wallet routes (WITHOUT dangerous /seed route)
+await app.register(walletRoutes, { prefix: '/api/wallet' })
 
-app.get('/wallet/seed', async (request, reply) => {
-  try {
-    // Verify JWT
-    await request.jwtVerify()
-    const { userId, sessionToken } = request.user as any
-    
-    // Verify session in Redis
-    const session = await redis.get(`session:${sessionToken}`)
-    if (!session) {
-      return reply.code(401).send({
-        error: 'Session expired',
-        message: 'Sessão expirada. Por favor, faça login novamente.'
-      })
-    }
-    
-    // Get password from request body or header
-    const password = request.headers['x-wallet-password'] as string
-    
-    if (!password) {
-      return reply.code(400).send({
-        error: 'Password required',
-        message: 'Senha necessária para acessar a seed.'
-      })
-    }
-    
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    })
-    
-    if (!user) {
-      return reply.code(404).send({
-        error: 'User not found',
-        message: 'Usuário não encontrado.'
-      })
-    }
-    
-    try {
-      // Decrypt seed
-      const seed = await CryptoManager.decryptSeed(
-        user.encryptedSeed,
-        password,
-        user.salt,
-        user.iv,
-        user.authTag
-      )
-      
-      // Return encrypted for transport (client will decrypt)
-      const transportKey = crypto.randomBytes(32)
-      const transportIv = crypto.randomBytes(16)
-      const cipher = crypto.createCipheriv('aes-256-gcm', transportKey, transportIv)
-      const encrypted = Buffer.concat([cipher.update(seed, 'utf8'), cipher.final()])
-      const authTag = cipher.getAuthTag()
-      
-      return reply.send({
-        encryptedSeed: encrypted.toString('base64'),
-        transportKey: transportKey.toString('base64'),
-        transportIv: transportIv.toString('base64'),
-        transportAuthTag: authTag.toString('base64')
-      })
-    } catch (error) {
-      return reply.code(401).send({
-        error: 'Invalid password',
-        message: 'Senha incorreta.'
-      })
-    }
-  } catch (error) {
-    app.log.error('Get seed error:', error)
-    return reply.code(500).send({
-      error: 'Failed to get seed',
-      message: 'Erro ao buscar seed.'
-    })
-  }
-})
-
-app.get('/wallet/accounts', async (request, reply) => {
-  try {
-    // Verify JWT
-    await request.jwtVerify()
-    const { userId } = request.user as any
-    
-    // Get accounts
-    const accounts = await prisma.account.findMany({
-      where: { userId },
-      orderBy: [
-        { isDefault: 'desc' },
-        { createdAt: 'asc' }
-      ]
-    })
-    
-    return reply.send({ accounts })
-  } catch (error) {
-    app.log.error('Get accounts error:', error)
-    return reply.code(500).send({
-      error: 'Failed to get accounts',
-      message: 'Erro ao buscar contas.'
-    })
-  }
-})
-
-app.post('/wallet/accounts', async (request, reply) => {
-  try {
-    // Verify JWT
-    await request.jwtVerify()
-    const { userId } = request.user as any
-    const { address, name, derivationPath } = request.body as any
-    
-    // Verify signature for address creation
-    const { signature, message } = request.body as any
-    const isValidSignature = await verifyPolkadotSignature(message, signature, address)
-    
-    if (!isValidSignature) {
-      return reply.code(401).send({
-        error: 'Invalid signature',
-        message: 'Assinatura inválida para criar conta.'
-      })
-    }
-    
-    // Create account
-    const account = await prisma.account.create({
-      data: {
-        userId,
-        address,
-        name: name || `Conta ${derivationPath}`,
-        derivationPath,
-        isDefault: false
-      }
-    })
-    
-    return reply.send({ success: true, account })
-  } catch (error) {
-    app.log.error('Create account error:', error)
-    return reply.code(500).send({
-      error: 'Failed to create account',
-      message: 'Erro ao criar conta.'
-    })
-  }
-})
+// User routes
+await app.register(userRoutes, { prefix: '/api/users' })
 
 // ==================== HEALTH CHECK ====================
 
-app.get('/health', async (request, reply) => {
+app.get('/api/health', async (request, reply) => {
   const checks = {
     server: 'ok',
     database: 'checking',
@@ -714,11 +272,12 @@ app.setErrorHandler((error, request, reply) => {
     })
   }
   
-  // Development mode - show error details
+  // Development mode - show error details (except sensitive data)
   return reply.code(500).send({
     error: error.name,
     message: error.message,
-    stack: error.stack
+    // Don't include stack in production
+    ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
   })
 })
 
@@ -754,15 +313,29 @@ const start = async () => {
     await app.listen({ port, host })
     
     app.log.info(`🚀 Bazari API running at http://${host}:${port}`)
+    app.log.info(`🔐 Zero-Knowledge Architecture enabled`)
     app.log.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
-    app.log.info(`🔐 JWT configured`)
+    app.log.info(`🍪 Cookie-based sessions configured`)
     app.log.info(`💾 Database connected`)
     app.log.info(`📦 Redis connected`)
     app.log.info(`🔒 Rate limiting enabled`)
+    app.log.info(`🛡️ CORS configured with credentials`)
   } catch (error) {
     app.log.error('Failed to start server:', error)
     process.exit(1)
   }
+}
+
+// Export utilities for use in routes
+export {
+  app,
+  prisma,
+  redis,
+  generateNonce,
+  verifyPolkadotSignature,
+  validateMessage,
+  checkNonce,
+  createSession
 }
 
 start()
